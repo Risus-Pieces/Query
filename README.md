@@ -1,0 +1,65 @@
+# Query — opportunity radar
+
+A private dashboard + weekly email that keeps looking for things worth your attention, in two sections:
+
+- **Sooz** (pre-seed food & beverage CPG): angel investors (Rice alumni first), CPG / fundraising / general
+  events, accelerators, grants and other resources.
+- **Personal**: AI & startup hackathons, leadership programs, cultural opportunities, and a "wildcard"
+  search for anything interesting.
+
+```
+GitHub Actions (weekly)            Neon Postgres            Vercel
+ ├─ research agent (Claude +   ──▶  items, runs   ◀──────── Next.js dashboard (password-gated)
+ │   web search)                        ▲
+ └─ email digest (Resend) ──────────────┘ new, un-emailed, high-fit items
+```
+
+Findings are de-duplicated (people by name + firm, everything else by canonical URL). Your triage
+(`saved`, `contacted`, `dismissed`, notes) is never overwritten by later runs, and the agent is told what it
+already found so each run hunts for *new* things.
+
+## Setup
+
+1. **Database (Neon).** Create a Neon project (via the Vercel Storage tab or neon.tech) and copy the
+   **pooled** connection string.
+2. **Dashboard (Vercel).** Import this repo and set env vars: `DATABASE_URL`, `DASHBOARD_PASSWORD`,
+   `SESSION_SECRET` (`openssl rand -hex 32`).
+3. **Migrate once:** `DATABASE_URL=... npm run db:migrate`
+4. **Research + digest (GitHub Actions).** Repo secrets: `DATABASE_URL`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`,
+   `DIGEST_TO`, `DIGEST_FROM`. Repo variables (optional): `HOME_BASE` (default `Houston, TX`), `RESEARCH_MODEL`
+   (default `claude-opus-5-5`), `DASHBOARD_URL`.
+   Runs Mondays 13:00 UTC; trigger manually from the Actions tab (**Run workflow**) any time.
+5. Resend needs a verified sender domain for `DIGEST_FROM`.
+
+## Local use
+
+```bash
+cp .env.example .env        # fill in; or export the vars
+npm install
+npm run db:migrate
+npm run research -- --dry                       # run every task, print findings, write nothing
+npm run research -- --task sooz-angels-rice     # one task, saved to the DB
+npm run research -- --section personal
+npm run digest -- --print                       # preview the email
+npm run dev                                     # dashboard on :3000
+npm test                                        # set TEST_DATABASE_URL to include the Postgres tests
+```
+
+`npm run db:seed-demo` fills a **local** database with obviously fictional rows to preview the UI
+(it refuses to run against a non-local database).
+
+## Tuning what it looks for
+
+Everything the agent hunts for lives in [`lib/briefs.ts`](lib/briefs.ts): the Sooz and personal profiles and
+one brief per task. Edit the text, add a task, or change `maxSearches`. Cost scales with tasks × searches;
+`RESEARCH_MAX_SEARCHES` caps it globally.
+
+## Notes and limits
+
+- **Public information only.** The agent is instructed to use public professional sources and never to guess
+  emails/phones. Rice's alumni directory (Owls Connect) is login-gated and not scraped; to use it, export
+  from it yourself and add rows, or use the CSV export + your own outreach notes.
+- **Verify before you reach out.** Findings come from web search and carry a source link; confirm details
+  (especially angel check sizes and event dates) at the source.
+- The dashboard is a single-user password gate (signed cookie, 30 days). Rotating `SESSION_SECRET` signs
+  everyone out.

@@ -1,0 +1,48 @@
+name: Weekly research + digest
+
+on:
+  schedule:
+    - cron: "0 13 * * 1" # Mondays 13:00 UTC (8am Central)
+  workflow_dispatch:
+    inputs:
+      section:
+        description: "Limit to one section (sooz | personal). Empty = all."
+        required: false
+        default: ""
+      send_digest:
+        description: "Send the email digest after researching"
+        type: boolean
+        default: true
+
+concurrency:
+  group: research
+  cancel-in-progress: false
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      RESEARCH_MODEL: ${{ vars.RESEARCH_MODEL }}
+      HOME_BASE: ${{ vars.HOME_BASE }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      DIGEST_TO: ${{ secrets.DIGEST_TO }}
+      DIGEST_FROM: ${{ secrets.DIGEST_FROM }}
+      DASHBOARD_URL: ${{ vars.DASHBOARD_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:migrate
+      - name: Research
+        env:
+          SECTION: ${{ inputs.section }}
+        run: npm run research -- ${SECTION:+--section "$SECTION"}
+      - name: Email digest
+        if: ${{ github.event_name == 'schedule' || inputs.send_digest }}
+        run: npm run digest
