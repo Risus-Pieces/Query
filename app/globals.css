@@ -48,7 +48,7 @@ button, input, select, textarea { font: inherit; color: inherit; letter-spacing:
 
 .wrap { max-width: 720px; margin: 0 auto; padding: 0 16px 72px; }
 
-/* ── Title row (large title) ───────────────────────────────────────────── */
+/* Title row (large title) */
 .title-row {
   display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
   padding: calc(env(safe-area-inset-top) + 28px) 0 12px;
@@ -61,7 +61,7 @@ button, input, select, textarea { font: inherit; color: inherit; letter-spacing:
 }
 .text-btn:active { opacity: 0.4; }
 
-/* ── Sticky translucent toolbar with the section switcher ─────────────── */
+/* Sticky translucent toolbar with the section switcher */
 .toolbar {
   position: sticky; top: 0; z-index: 20;
   margin: 0 -16px 12px; padding: calc(env(safe-area-inset-top) + 8px) 16px 8px;
@@ -72,7 +72,7 @@ button, input, select, textarea { font: inherit; color: inherit; letter-spacing:
 }
 .toolbar-inner { max-width: 720px; margin: 0 auto; }
 
-/* ── Segmented controls ────────────────────────────────────────────────── */
+/* Segmented controls */
 .seg { display: flex; gap: 2px; padding: 2px; background: var(--fill-3); border-radius: 9px; }
 .seg a {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0;
@@ -89,7 +89,7 @@ button, input, select, textarea { font: inherit; color: inherit; letter-spacing:
   background: var(--blue); color: #fff;
 }
 
-/* ── Search field ──────────────────────────────────────────────────────── */
+/* Search field */
 .search { display: flex; gap: 10px; align-items: center; margin: 0 0 12px; }
 .search-field {
   position: relative; flex: 1; min-width: 0; display: flex; align-items: center;
@@ -101,7 +101,7 @@ button, input, select, textarea { font: inherit; color: inherit; letter-spacing:
 .search-field input::placeholder { color: var(--label-3); }
 .search-field:focus-within { box-shadow: 0 0 0 2px var(--blue); }
 
-/* ── Chips (horizontally scrolling filter row) ─────────────────────────── */
+/* Chips (horizontally scrolling filter row) */
 .scroller {
   display: flex; gap: 8px; align-items: center; overflow-x: auto; margin: 0 -16px 12px; padding: 2px 16px;
   scrollbar-width: none; -webkit-overflow-scrolling: touch;
@@ -121,7 +121,7 @@ button, input, select, textarea { font: inherit; color: inherit; letter-spacing:
 .chip .count { font-variant-numeric: tabular-nums; opacity: 0.7; }
 .sep { flex: none; width: 0.5px; height: 18px; background: var(--sep); margin: 0 2px; }
 
-/* ── Buttons ───────────────────────────────────────────────────────────── */
+/* Buttons */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 13px;
   border: 0; border-radius: 999px; background: var(--fill-3); color: var(--blue);
@@ -137,7 +137,7 @@ button, input, select, textarea { font: inherit; color: inherit; letter-spacing:
 .btn.danger { color: var(--red); }
 .btn:disabled { opacity: 0.5; cursor: default; }
 
-/* ── Meta line ─────────────────────────────────────────────────────────── */
+/* Meta line */
 .meta-line {
   display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 0 4px 8px;
   font-size: 13px; line-height: 1.38; color: var(--label-2); text-transform: none;
@@ -145,7 +145,7 @@ button, input, select, textarea { font: inherit; color: inherit; letter-spacing:
 .meta-line form { display: inline; }
 .meta-line .text-btn { font-size: 13px; padding: 0; }
 
-/* ── Grouped list + rows (inset grouped) ───────────────────────────────── */
+/* Grouped list + rows (inset grouped) */
 .group { background: var(--bg-2); border-radius: 14px; overflow: hidden; }
 .card {
   position: relative; padding: 14px 16px 14px 30px; border-top: 0.5px solid var(--sep);
@@ -206,14 +206,14 @@ details.notes textarea {
 }
 details.notes textarea:focus { box-shadow: 0 0 0 2px var(--blue); }
 
-/* ── Empty state ───────────────────────────────────────────────────────── */
+/* Empty state */
 .empty {
   display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; color: var(--label-2);
   padding: 56px 24px; background: var(--bg-2); border-radius: 14px; font-size: 15px;
 }
 .empty svg { color: var(--label-3); }
 
-/* ── Research runs ─────────────────────────────────────────────────────── */
+/* Research runs */
 .runs { margin-top: 28px; font-size: 13px; color: var(--label-2); }
 .runs summary { cursor: pointer; padding: 0 4px; }
 .runs table { width: 100%; border-collapse: collapse; margin-top: 8px; background: var(--bg-2); border-radius: 12px; overflow: hidden; }
@@ -221,7 +221,7 @@ details.notes textarea:focus { box-shadow: 0 0 0 2px var(--blue); }
 .runs tr:first-child td { border-top: 0; }
 .runs .err { color: var(--red); }
 
-/* ── Login ─────────────────────────────────────────────────────────────── */
+/* Login */
 .login { max-width: 340px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 18vh) 20px 40px; text-align: center; }
 .app-icon {
   width: 76px; height: 76px; margin: 0 auto 18px; border-radius: 18px; display: grid; place-items: center; color: var(--blue);
