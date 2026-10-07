@@ -1,12 +1,29 @@
+import type { CSSProperties } from "react";
 import { saveNotes, updateStatus } from "@/app/actions";
 import type { Item, Status } from "@/lib/types";
+import { CheckCircleIcon, ChevronIcon, StarIcon, UndoIcon, XIcon } from "./icons";
 
-function StatusButton({ id, status, label, on }: { id: number; status: Status; label: string; on?: boolean }) {
+function StatusButton({
+  id,
+  status,
+  label,
+  className,
+  on,
+  icon,
+}: {
+  id: number;
+  status: Status;
+  label: string;
+  className?: string;
+  on?: boolean;
+  icon?: React.ReactNode;
+}) {
   return (
     <form action={updateStatus}>
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="status" value={status} />
-      <button className="btn save" data-on={on ? "true" : undefined}>
+      <button className={`btn ${className ?? ""}`} data-on={on ? "true" : undefined}>
+        {icon}
         {label}
       </button>
     </form>
@@ -31,6 +48,10 @@ function host(url: string): string {
   }
 }
 
+function ringColor(score: number): string {
+  return score >= 80 ? "var(--green)" : score >= 60 ? "var(--blue)" : "var(--orange)";
+}
+
 export default function ItemCard({ item }: { item: Item }) {
   const d = item.details ?? {};
   const isAngel = item.kind === "angel";
@@ -42,12 +63,12 @@ export default function ItemCard({ item }: { item: Item }) {
     if (d.contact_path) facts.push(["Reach via", d.contact_path]);
   }
 
-  const cls = ["card", item.status === "new" ? "is-new" : "", item.status === "dismissed" ? "is-dismissed" : ""]
-    .filter(Boolean)
-    .join(" ");
+  const cls = ["card", item.status === "dismissed" ? "is-dismissed" : ""].filter(Boolean).join(" ");
+  const ring = { "--p": item.score, "--c": ringColor(item.score) } as CSSProperties;
 
   return (
     <article className={cls}>
+      {item.status === "new" ? <span className="dot" role="img" aria-label="New" /> : null}
       <div className="head">
         <div>
           <h3>
@@ -60,7 +81,6 @@ export default function ItemCard({ item }: { item: Item }) {
             )}
           </h3>
           <div className="badges">
-            {item.status === "new" ? <span className="badge new">New</span> : null}
             <span className="badge kind">{item.kind}</span>
             {item.tags.includes("rice") ? <span className="badge rice">Rice</span> : null}
             {item.event_date ? <span className="badge when">{fmtDate(item.event_date)}</span> : null}
@@ -76,8 +96,8 @@ export default function ItemCard({ item }: { item: Item }) {
               ))}
           </div>
         </div>
-        <span className={`score${item.score >= 75 ? " high" : ""}`} title="Fit score">
-          {item.score}
+        <span className="ring" style={ring} role="img" aria-label={`Fit score ${item.score} out of 100`} title="Fit score">
+          <span>{item.score}</span>
         </span>
       </div>
 
@@ -96,20 +116,37 @@ export default function ItemCard({ item }: { item: Item }) {
       ) : null}
 
       <div className="actions">
-        <StatusButton id={item.id} status="saved" label={item.status === "saved" ? "★ Saved" : "☆ Save"} on={item.status === "saved"} />
+        <StatusButton
+          id={item.id}
+          status="saved"
+          className="save"
+          on={item.status === "saved"}
+          icon={<StarIcon filled={item.status === "saved"} />}
+          label={item.status === "saved" ? "Saved" : "Save"}
+        />
         {isAngel ? (
-          <StatusButton id={item.id} status="contacted" label={item.status === "contacted" ? "✓ Contacted" : "Mark contacted"} on={item.status === "contacted"} />
+          <StatusButton
+            id={item.id}
+            status="contacted"
+            className="done"
+            on={item.status === "contacted"}
+            icon={<CheckCircleIcon />}
+            label={item.status === "contacted" ? "Contacted" : "Mark contacted"}
+          />
         ) : null}
         {item.status === "dismissed" ? (
-          <StatusButton id={item.id} status="seen" label="Restore" />
+          <StatusButton id={item.id} status="seen" icon={<UndoIcon />} label="Restore" />
         ) : (
-          <StatusButton id={item.id} status="dismissed" label="Dismiss" />
+          <StatusButton id={item.id} status="dismissed" className="danger" icon={<XIcon />} label="Dismiss" />
         )}
-        {item.url ? <span style={{ color: "var(--muted)", fontSize: 12 }}>{host(item.url)}</span> : null}
+        {item.url ? <span className="src">{host(item.url)}</span> : null}
       </div>
 
       <details className="notes">
-        <summary>{item.notes ? "Notes ✎" : "Add notes"}</summary>
+        <summary>
+          <ChevronIcon size={14} />
+          {item.notes ? "Notes" : "Add notes"}
+        </summary>
         <form action={saveNotes}>
           <input type="hidden" name="id" value={item.id} />
           <textarea name="notes" defaultValue={item.notes} placeholder="Intro paths, follow-ups, who to ask…" />

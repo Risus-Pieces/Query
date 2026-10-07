@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ItemCard from "@/components/ItemCard";
+import { DownloadIcon, SearchIcon, TrayIcon } from "@/components/icons";
 import { logout, seeAll } from "./actions";
 import {
   SORTS,
@@ -63,39 +64,59 @@ export default async function Home({ searchParams }: { searchParams: Promise<SP>
 
   return (
     <div className="wrap">
-      <header className="top">
-        <Link className="brand" href="/">
-          Query<small>opportunity radar</small>
-        </Link>
+      <header className="title-row">
+        <div>
+          <h1 className="large-title">Query</h1>
+          <p className="subtitle">{SECTION_META[section].tagline}</p>
+        </div>
         <form action={logout}>
-          <button className="linkbtn">Sign out</button>
+          <button className="text-btn">Sign out</button>
         </form>
       </header>
 
-      <nav className="tabs" aria-label="Section">
-        {SECTIONS.map((s) => (
-          <Link key={s} className="tab" href={`/?section=${s}`} aria-current={s === section ? "page" : undefined}>
-            {SECTION_META[s].label}
-            {newBySection[s] > 0 ? <span className="n">{newBySection[s]} new</span> : null}
-          </Link>
-        ))}
-      </nav>
-      <p className="tagline">{SECTION_META[section].tagline}</p>
+      <div className="toolbar">
+        <div className="toolbar-inner">
+          <nav className="seg large" aria-label="Section">
+            {SECTIONS.map((s) => (
+              <Link key={s} href={`/?section=${s}`} aria-current={s === section ? "page" : undefined}>
+                {SECTION_META[s].label}
+                {newBySection[s] > 0 ? <span className="new-pill">{newBySection[s]}</span> : null}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      </div>
 
-      <div className="bar" role="tablist" aria-label="View">
+      <form className="search" action="/" method="get">
+        <input type="hidden" name="section" value={section} />
+        {view !== "inbox" ? <input type="hidden" name="view" value={view} /> : null}
+        {kind ? <input type="hidden" name="kind" value={kind} /> : null}
+        {rice ? <input type="hidden" name="rice" value="1" /> : null}
+        <label className="search-field">
+          <SearchIcon size={16} />
+          <input type="search" name="q" defaultValue={q} placeholder="Search names, firms, topics" aria-label="Search" />
+        </label>
+        {section === "sooz" ? (
+          <a className="btn" href="/api/export?section=sooz" title="Download angels as CSV">
+            <DownloadIcon size={15} />
+            CSV
+          </a>
+        ) : null}
+      </form>
+
+      <nav className="seg" aria-label="View" style={{ marginBottom: 12 }}>
         {VIEWS.map((v) => (
           <Link
             key={v}
-            className="chip"
-            aria-current={v === view ? "true" : undefined}
+            aria-current={v === view ? "page" : undefined}
             href={href({ ...base, view: undefined, kind: undefined }, { view: v === "inbox" ? undefined : v })}
           >
-            {v[0].toUpperCase() + v.slice(1)} {counts[v]}
+            {v[0].toUpperCase() + v.slice(1)} <span className="count">{counts[v]}</span>
           </Link>
         ))}
-      </div>
+      </nav>
 
-      <div className="bar" aria-label="Type">
+      <div className="scroller" aria-label="Filters">
         <Link className="chip" aria-current={!kind ? "true" : undefined} href={href(base, { kind: undefined })}>
           All types
         </Link>
@@ -104,7 +125,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<SP>
           if (!n && k !== kind) return null;
           return (
             <Link key={k} className="chip" aria-current={k === kind ? "true" : undefined} href={href(base, { kind: k })}>
-              {k} {n}
+              <span style={{ textTransform: "capitalize" }}>{k}</span> <span className="count">{n}</span>
             </Link>
           );
         })}
@@ -124,39 +145,36 @@ export default async function Home({ searchParams }: { searchParams: Promise<SP>
         ))}
       </div>
 
-      <form className="search" action="/" method="get">
-        <input type="hidden" name="section" value={section} />
-        {view !== "inbox" ? <input type="hidden" name="view" value={view} /> : null}
-        {kind ? <input type="hidden" name="kind" value={kind} /> : null}
-        {rice ? <input type="hidden" name="rice" value="1" /> : null}
-        <input type="search" name="q" defaultValue={q} placeholder="Search names, firms, topics…" aria-label="Search" />
-        <button className="btn">Search</button>
-        {section === "sooz" ? (
-          <a className="btn" href="/api/export?section=sooz">
-            Export angels CSV
-          </a>
-        ) : null}
-      </form>
-
       <div className="meta-line">
         <span>
           {items.length} shown{items.length === 300 ? "+" : ""}
         </span>
-        {lastRun?.finished_at ? <span>Last research: {new Date(lastRun.finished_at).toISOString().slice(0, 10)}</span> : <span>No research runs yet</span>}
+        {lastRun?.finished_at ? <span>Last research {new Date(lastRun.finished_at).toISOString().slice(0, 10)}</span> : <span>No research runs yet</span>}
         {fresh > 0 ? (
           <form action={seeAll}>
             <input type="hidden" name="section" value={section} />
-            <button className="linkbtn">Mark {fresh} new as seen</button>
+            <button className="text-btn">Mark {fresh} new as seen</button>
           </form>
         ) : null}
       </div>
 
       {items.length === 0 ? (
         <div className="empty">
-          {q || kind || rice ? "Nothing matches these filters." : view === "inbox" ? "Nothing here yet — the next research run will fill this in." : "Nothing in this view."}
+          <TrayIcon />
+          <span>
+            {q || kind || rice
+              ? "Nothing matches these filters."
+              : view === "inbox"
+                ? "Nothing here yet — the next research run will fill this in."
+                : "Nothing in this view."}
+          </span>
         </div>
       ) : (
-        items.map((i) => <ItemCard key={i.id} item={i} />)
+        <div className="group">
+          {items.map((i) => (
+            <ItemCard key={i.id} item={i} />
+          ))}
+        </div>
       )}
 
       {runs.length > 0 ? (

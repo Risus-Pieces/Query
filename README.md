@@ -8,72 +8,73 @@ A private dashboard + weekly email that keeps looking for things worth your atte
   search for anything interesting.
 
 ```
-GitHub Actions (weekly)            Neon Postgres            Vercel
- ├─ research agent (Claude +   ──▶  items, runs   ◀──────── Next.js dashboard (password-gated)
- │   web search)                        ▲
- └─ email digest (Resend) ──────────────┘ new, un-emailed, high-fit items
+Claude routines (weekly, on your Claude plan — no API key)        Neon Postgres          Vercel
+ ├─ research:  WebSearch → oq_ingest()  ────────────────────────▶  items, runs   ◀────── Next.js dashboard
+ └─ digest:    oq_digest_email() → Gmail → oq_mark_digested() ──────────▲                (password-gated)
 ```
 
 Findings are de-duplicated (people by name + firm, everything else by canonical URL). Your triage
 (`saved`, `contacted`, `dismissed`, notes) is never overwritten by later runs, and the agent is told what it
 already found so each run hunts for *new* things.
 
-## Setup
+## How the weekly job runs (no API key)
 
-1. **Database (Neon).** Create a Neon project (via the Vercel Storage tab or neon.tech) and copy the
-   **pooled** connection string.
-2. **Dashboard (Vercel).** Import this repo and set env vars: `DATABASE_URL`, `DASHBOARD_PASSWORD`,
-   `SESSION_SECRET` (`openssl rand -hex 32`).
-3. **Migrate once:** `DATABASE_URL=... npm run db:migrate`
-4. **Research + digest (GitHub Actions).** Repo secrets: `DATABASE_URL`, `ANTHROPIC_API_KEY`, `RESEND_API_KEY`,
-   `DIGEST_TO`, `DIGEST_FROM`. Repo variables (optional): `HOME_BASE` (default `Houston, TX`), `RESEARCH_MODEL`
-   (default `claude-opus-5-5`), `DASHBOARD_URL`.
-   Runs Mondays 13:00 UTC; trigger manually from the Actions tab (**Run workflow**) any time.
-5. Resend needs a verified sender domain for `DIGEST_FROM`.
+Two scheduled Claude routines run **on your Claude plan** inside a session that holds your Neon and Gmail
+connectors:
 
-## Local use
+| Routine | When | Does |
+|---|---|---|
+| Opportunity radar weekly research | Mondays ~8:00 Central | 8 research tasks (briefs in `lib/briefs.ts`) → `oq_ingest()` into Neon |
+| Opportunity radar weekly digest | Mondays ~10:30 Central | `oq_digest_email()` → one email to you via Gmail → `oq_mark_digested()` |
+
+The prompts live in `routines/*.md` (regenerate with `npm run routine-prompt -- research|digest`). To change what
+it looks for, edit `lib/briefs.ts`, regenerate, and update the routine's prompt.
+
+**Safety design.** The routines can only call a fixed set of SQL functions (all validation, length caps and
+de-duplication live in `db/schema.sql`), the research routine is told never to email, the digest is rendered
+(and HTML-escaped) in SQL so the email step only forwards it, and both are told to treat web/database text as
+untrusted data. Because a session with web + database + email access is a prompt-injection target, consider moving
+each routine into its own claude.ai Routine with only the connector it needs (research: Neon; digest: Neon + Gmail).
+
+## Setup (already done for this instance — see the bottom)
+
+1. **Database (Neon).** Create a Neon database and a restricted role; copy the pooled connection string.
+2. **Dashboard (Vercel).** Env vars: `DATABASE_URL`, `DASHBOARD_PASSWORD`, `SESSION_SECRET` (`openssl rand -hex 32`).
+3. **Migrate:** `DATABASE_URL=... npm run db:migrate` (creates tables + the `oq_*` functions).
+4. **Routines:** create the two routines from `routines/research.md` and `routines/digest.md`.
+
+## Local development
 
 ```bash
-cp .env.example .env        # fill in; or export the vars
+cp .env.example .env        # DATABASE_URL, DASHBOARD_PASSWORD, SESSION_SECRET
 npm install
 npm run db:migrate
-npm run research -- --dry                       # run every task, print findings, write nothing
-npm run research -- --task sooz-angels-rice     # one task, saved to the DB
-npm run research -- --section personal
-npm run digest -- --print                       # preview the email
-npm run dev                                     # dashboard on :3000
-npm test                                        # set TEST_DATABASE_URL to include the Postgres tests
+npm run db:seed-demo        # fictional rows, refuses to run against a non-local database
+npm run dev                 # dashboard on :3000
+npm test                    # set TEST_DATABASE_URL to include the Postgres tests
 ```
 
-`npm run db:seed-demo` fills a **local** database with obviously fictional rows to preview the UI
-(it refuses to run against a non-local database).
-
-## Tuning what it looks for
-
-Everything the agent hunts for lives in [`lib/briefs.ts`](lib/briefs.ts): the Sooz and personal profiles and
-one brief per task. Edit the text, add a task, or change `maxSearches`. Cost scales with tasks × searches;
-`RESEARCH_MAX_SEARCHES` caps it globally.
+An optional API-key path exists for running research from a script instead of a routine
+(`npm run research -- --dry`, needs `ANTHROPIC_API_KEY`; and `npm run digest` with Resend). It is not used by default.
 
 ## Notes and limits
 
 - **Public information only.** The agent is instructed to use public professional sources and never to guess
-  emails/phones. Rice's alumni directory (Owls Connect) is login-gated and not scraped; to use it, export
-  from it yourself and add rows, or use the CSV export + your own outreach notes.
-- **Verify before you reach out.** Findings come from web search and carry a source link; confirm details
-  (especially angel check sizes and event dates) at the source.
-- The dashboard is a single-user password gate (signed cookie, 30 days). Rotating `SESSION_SECRET` signs
-  everyone out.
+  emails/phones. Rice's alumni directory (Owls Connect) is login-gated and not scraped.
+- **Search-only research.** WebFetch is blocked by the cloud environment's network allowlist unless you widen
+  *Network access* in the environment settings, so research relies on search results. Dates found only on
+  aggregator sites are tagged `verify-dates` — confirm at the source before acting.
+- **Verify before you reach out.** Findings carry a source link; confirm details (check sizes, dates) there.
+- The dashboard is a single-user password gate (signed cookie, 30 days). Rotating `SESSION_SECRET` signs everyone out.
 
 ## Where this instance is deployed
 
 - **Dashboard:** Vercel project `opportunity-query` → https://opportunity-query.vercel.app (Vercel Authentication
-  is on by default for `*.vercel.app`; turn it off under Project → Settings → Deployment Protection if you
-  want to reach it from a device that isn't signed in to Vercel — the app has its own password gate).
+  is on by default for `*.vercel.app`; turn it off under Project → Settings → Deployment Protection to open it on
+  a device that isn't signed in to Vercel — the app has its own password gate).
 - **Database:** Neon project `neon-rose-plank` (`green-hall-60323582`), database `opportunity_query`, owned by the
-  restricted role `oq_app`. The role has no privileges on the project's other databases/tables. Neon projects
-  in a Vercel-managed org can only be created from the Vercel dashboard, so this reuses an existing project;
-  to move to a dedicated project later, create one in Vercel → Storage → Neon, run `npm run db:migrate`
-  against it, and swap `DATABASE_URL` (data is regenerated by the research runs).
-- **Env vars on Vercel (sensitive):** `DATABASE_URL`, `DASHBOARD_PASSWORD`, `SESSION_SECRET`.
-- **Not set up yet:** the weekly research/digest job (needs `ANTHROPIC_API_KEY`, and the repo pushed to GitHub with
-  the Actions secrets listed above).
+  restricted role `oq_app` (no privileges on the project's other databases/tables). Neon projects in a
+  Vercel-managed org can only be created from the Vercel dashboard, so this reuses an existing project; to move to a
+  dedicated one later, create it in Vercel → Storage → Neon, run `npm run db:migrate`, and swap `DATABASE_URL`.
+- **Vercel env vars (sensitive):** `DATABASE_URL`, `DASHBOARD_PASSWORD`, `SESSION_SECRET`.
+- **Routines:** see `mcp__claude-code-remote` triggers "Opportunity radar weekly research / digest".

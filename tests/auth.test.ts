@@ -22,7 +22,8 @@ describe("auth", () => {
     expect(await verifySession(value)).toBe(true);
     const [exp, sig] = value.split(".");
     expect(await verifySession(`${Number(exp) + 99999}.${sig}`)).toBe(false);
-    expect(await verifySession(`${exp}.${sig.slice(0, -1)}0`)).toBe(false);
+    const flipped = sig.endsWith("0") ? "1" : "0"; // always differs from the real last char
+    expect(await verifySession(`${exp}.${sig.slice(0, -1)}${flipped}`)).toBe(false);
     expect(await verifySession(undefined)).toBe(false);
     expect(await verifySession("garbage")).toBe(false);
   });

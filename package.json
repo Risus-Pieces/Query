@@ -12,7 +12,8 @@
     "db:migrate": "tsx --env-file-if-exists=.env scripts/migrate.ts",
     "db:seed-demo": "tsx --env-file-if-exists=.env scripts/seed-demo.ts",
     "research": "tsx --env-file-if-exists=.env scripts/research.ts",
-    "digest": "tsx --env-file-if-exists=.env scripts/digest.ts"
+    "digest": "tsx --env-file-if-exists=.env scripts/digest.ts",
+    "routine-prompt": "tsx scripts/routine-prompt.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
