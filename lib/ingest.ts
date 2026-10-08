@@ -1,8 +1,15 @@
 import { z } from "zod";
 import { query } from "./db";
 import { dedupeKey, normalizeUrl } from "./dedupe";
-import type { ResearchTask } from "./briefs";
-import type { Candidate, ItemDetails } from "./types";
+import type { Candidate, ItemDetails, Section } from "./types";
+
+/** The parts of a research task that validation and persistence need. */
+export interface TaskShape {
+  id: string;
+  section: Section;
+  kinds: readonly string[];
+  upcomingOnly: boolean;
+}
 
 /** Validation + persistence for findings, shared by the research script and CSV import. */
 
@@ -46,7 +53,7 @@ const clean = (s: string | null | undefined) => (s && s.trim() ? s.trim() : null
 /** Drop anything unusable and normalise the rest. Pure — easy to test. */
 export function validateCandidates(
   raw: RawFindingT[],
-  task: Pick<ResearchTask, "section" | "kinds" | "upcomingOnly">,
+  task: Pick<TaskShape, "section" | "kinds" | "upcomingOnly">,
   today: string,
 ): Candidate[] {
   const out: Candidate[] = [];
@@ -114,7 +121,7 @@ export interface PersistResult {
 
 /** Insert new findings; refresh last_seen (and content) for ones we already had — never touch status/notes. */
 export async function persistCandidates(
-  task: Pick<ResearchTask, "id" | "section">,
+  task: Pick<TaskShape, "id" | "section">,
   candidates: Candidate[],
 ): Promise<PersistResult> {
   let inserted = 0;

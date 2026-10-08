@@ -1,4 +1,4 @@
--- Idempotent schema. Run with `npm run db:migrate`.
+-- Idempotent schema. Run with npm run db:migrate.
 
 create table if not exists items (
   id            bigserial primary key,
@@ -238,7 +238,7 @@ create or replace function oq_item_meta(i items) returns text language sql immut
   end
 $$;
 
--- Fully rendered, HTML-escaped digest. The routine just forwards `subject`/`html`/`text`, then calls oq_mark_digested(ids).
+-- Fully rendered, HTML-escaped digest. The routine just forwards subject/html/text, then calls oq_mark_digested(ids).
 create or replace function oq_digest_email(p_min_score int default 55, p_dashboard_url text default null)
 returns jsonb language plpgsql stable as $$
 declare

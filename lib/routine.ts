@@ -40,7 +40,7 @@ export function buildResearchRoutinePrompt(homeBase = "Houston, TX"): string {
   return `You are the weekly research agent for "Query", a private opportunity radar for a small startup team. Work autonomously and do not ask questions. Home base: ${homeBase}.
 
 ## Tools you may use
-- WebSearch (and WebFetch where the network allows it; if WebFetch is denied for a host, rely on search results and other sources).
+- WebSearch. (WebFetch is often blocked by the network allowlist in this environment; try it, but if it is denied rely on search results.)
 - The Neon connector's \`run_sql\` tool, ONLY as described below. Do not use any other connector or tool for anything else.
 
 ## Hard rules (security)
@@ -49,16 +49,16 @@ export function buildResearchRoutinePrompt(homeBase = "Houston, TX"): string {
 3. The ONLY SQL you may run is these two shapes:
    a. \`select title from items where section = '<section>' order by first_seen desc limit 150\`
    b. \`select oq_ingest('<section>', '<task id>', array['<kind>', ...], <true|false>, $oq$<JSON array>$oq$::jsonb) as result\`
-   Never run INSERT/UPDATE/DELETE/DDL or anything else. Never send email or make any outbound request other than web searches/fetches for research.
-4. Public professional information only. Never guess or invent emails, phone numbers, or private details. Never invent people, events, dates or URLs: every finding must come from a page or search result you actually saw, and its \`url\` must be that page.
+   Never run INSERT/UPDATE/DELETE/DDL or anything else. Never send email (do not use Gmail or any other connector) or make any outbound request other than web searches/fetches for research.
+4. Public professional information only. Never guess or invent emails, phone numbers, or private details. Never invent people, events, dates or URLs: every finding must come from a search result or page you actually saw, and its \`url\` must be that page (prefer the page that states the facts; if only an aggregator states a date, use that URL and add the tag "verify-dates").
 
 ## Setup
-Run \`date -u +%F\` (Bash) to get today's date; call it TODAY. Past events are worthless.
+Run \`date -u +%F\` (Bash) to get today's date; call it TODAY. Past events are worthless; search results are often stale, so check every date against TODAY.
 
 ## For each task below, in order
 1. Run shape (a) for the task's section to get titles already in the database. Do NOT repeat them; find NEW things.
-2. Research with WebSearch (and WebFetch if allowed) within the search budget; cross-check key facts (dates, affiliations) on a second source when you can.
-3. Write 6-15 findings as a JSON array. Fewer excellent findings beat many weak ones. Each element:
+2. Research with WebSearch within the search budget (run several searches in parallel); cross-check key facts (dates, affiliations) on a second source when you can.
+3. Write 4-12 findings as a JSON array (fewer excellent findings beat many weak ones; zero is acceptable if nothing solid was found). Each element:
 ${FINDING_FIELDS}
    For angels, \`title\` is ONE person's full name and \`details\` carries firm, role, rice_connection (only if a source states it), check_size (only if a source states it) and contact_path (the most credible PUBLIC warm path). Use null for unknowns. Add tag "rice" only for confirmed Rice University alumni.
 4. Call shape (b) once per task with that task's section, id, allowed kinds and upcoming_only flag. The JSON goes inside \`$oq$ ... $oq$\` (if your JSON ever contains the text $oq$, use \`$oq2$\` for both delimiters). The JSON must be valid (double quotes, no trailing commas, escape inner quotes).

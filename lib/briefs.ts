@@ -66,8 +66,10 @@ connectors (score lower if no consumer signal). Never guess or invent emails or 
 NOSH, Taste Radio, Food Dive, FoodNavigator-USA, Indie CPG, PR Newswire and Business Wire for phrases like
 "participation from angel investors including", "seasoned CPG operators", "other participants included" together
 with "pre-seed" or "seed" and "beverage". Also look at operator-angels (founders/executives of scaled or exited
-beverage and CPG brands), CPG syndicate leads (e.g. The Angel Group, Consumer Packaged Growth on AngelList), Startup
-CPG "Investor Spotlight" guests, and NFX Signal / OpenVC food & beverage angel lists. Each item is ONE PERSON
+beverage and CPG brands), CPG angel-group partners (e.g. The Angel Group / Supernatural Ventures, Consumer Packaged Growth on
+AngelList), investor judges and panelists at BevNET's New Beverage Showdown and "Meet the Angels" panels, Expo West
+Pitch Slam and Naturally Rising pitch events, Startup CPG "Investor Spotlight" guests, and NFX Signal / OpenVC food &
+beverage angel lists (aggregator lists only as leads: confirm each person on a primary source). Each item is ONE PERSON
 (title = full name) with firm/role, a one-line proof in summary naming the brands they backed and when, check_size
 only if stated, and a public contact_path (syndicate page, community, podcast, event). Score higher for beverage
 specifically, for repeat recent checks, and for Texas ties. Never submit a fund or group as an item.`,
@@ -80,8 +82,8 @@ specifically, for repeat recent checks, and for Texas ties. Never submit a fund 
     upcomingOnly: false,
     maxSearches: 12,
     brief: `Find INDIVIDUAL angel investors in Texas who back early-stage consumer/CPG brands. Austin is the Texas CPG hub:
-look at SKU accelerator mentors and investors, Naturally Austin leaders, Central Texas Angel Network members active in
-consumer, and Austin founders/executives of brands that scaled or exited (beverage, snacks, natural foods) who now
+look at SKU accelerator mentors, investors and demo-day judges, Naturally Austin leaders, Springdale Ventures partners,
+Central Texas Angel Network members active in consumer, and Austin founders/executives of brands that scaled or exited (beverage, snacks, natural foods) who now
 angel invest. Also Houston (Houston Angel Network consumer committee members, TiE Houston Angels food & beverage
 investors, Houston consumer founders who invest) and Dallas (consumer angels, Dallas Angel Network). Each item is ONE
 PERSON with evidence of consumer/CPG angel activity (named portfolio brands, a quote, a committee role), check_size

@@ -45,7 +45,7 @@ export interface Prospect {
   updated_at: string;
 }
 
-// ── Pitch profile (settings) ────────────────────────────────────────────────────────────────
+// Pitch profile (settings)
 
 export const PITCH_FIELDS = [
   { key: "pitch.company", label: "Company", placeholder: "Sooz Beverage" },
@@ -85,7 +85,7 @@ export function missingPitch(p: Pitch): string[] {
   return required.filter((k) => !p[k]?.trim()).map((k) => PITCH_FIELDS.find((f) => f.key === k)!.label);
 }
 
-// ── Queries ────────────────────────────────────────────────────────────────────────────────
+// Queries
 
 const PROSPECT_COLS = `i.id as item_id, i.title as name, i.url, i.summary, i.why_relevant, i.score, i.tags, i.details, i.location,
   o.stage, o.email, o.email_source, o.linkedin_url, o.warm_path, o.subject, o.body, o.linkedin_note, o.intro_request,
@@ -256,7 +256,7 @@ export async function outreachStages(): Promise<Map<number, Stage>> {
   return new Map(rows.map((r) => [r.item_id, r.stage]));
 }
 
-// ── Drafting (deterministic fallback; the weekly routine writes richer, personalised drafts) ──
+// Drafting (deterministic fallback; the weekly routine writes richer, personalised drafts)
 
 const firstName = (full: string) => full.trim().split(/\s+/)[0] ?? full;
 
@@ -354,7 +354,7 @@ export function templateDrafts(p: Pick<Prospect, "name" | "details" | "why_relev
   return { subject, body, linkedin_note: note, intro_request: intro, followup_1, followup_2 };
 }
 
-// ── Send helpers (human sends) ─────────────────────────────────────────────────────────────
+// Send helpers (human sends)
 
 /** Gmail compose deep link. Opens a pre-filled draft in the browser; nothing is sent automatically. */
 export function gmailComposeUrl(o: { to?: string | null; subject?: string | null; body?: string | null; from?: string | null }): string {
@@ -371,7 +371,7 @@ export function linkedinSearchUrl(name: string, firm?: string | null): string {
   return `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(q)}`;
 }
 
-// ── Your network (LinkedIn "Connections.csv") ──────────────────────────────────────────────
+// Your network (LinkedIn "Connections.csv")
 
 /** Minimal RFC-4180 CSV parser (quotes, escaped quotes, commas/newlines inside quotes). */
 export function parseCsv(text: string): string[][] {
