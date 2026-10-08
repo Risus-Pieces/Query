@@ -194,6 +194,16 @@ describe.skipIf(!hasDb)("outreach pipeline (postgres)", () => {
     expect(m.get(b)?.[0]).toMatchObject({ full_name: "Ola Smith", kind: "same_person" });
   });
 
+  it("matches warm paths against every firm in a multi-firm field", async () => {
+    const a = await insertItem("Jane Doe", { firm: "The Angel Group; Supernatural Ventures" });
+    await importConnections([
+      { full_name: "Sam Lee", company: "Supernatural Ventures", position: "Associate", linkedin_url: null, email: null, connected_on: null },
+      { full_name: "Kim Ng", company: "Co", position: "Founder", linkedin_url: null, email: null, connected_on: null },
+    ]);
+    const m = await warmMatches([a]);
+    expect(m.get(a)?.map((x) => x.full_name)).toEqual(["Sam Lee"]);
+  });
+
   it("imports a prospect CSV through research validation and queues it", async () => {
     const csv = [
       "name,firm,role,rice_connection,summary,url,score,email,linkedin_url",
@@ -224,6 +234,23 @@ describe.skipIf(!hasDb)("outreach pipeline (postgres)", () => {
       expect(todo.pitch["pitch.company"]).toBe("Sooz Beverage");
       expect(todo.prospects).toHaveLength(1);
       expect(todo.prospects[0]).toMatchObject({ name: "Jane Doe", network_matches: [{ name: "Sam Lee" }] });
+    });
+
+    it("hands out one person per firm, and skips firms with a live thread", async () => {
+      await insertItem("Ann Top", { score: 90, firm: "The Angel Group; Supernatural Ventures" });
+      await insertItem("Ben Next", { score: 85, firm: "The Angel Group" });
+      await insertItem("Cat Solo", { score: 70, firm: "Solo Fund" });
+      await insertItem("Dan Nofirm", { score: 60, firm: "" });
+      await insertItem("Eve Nofirm", { score: 55, firm: "" });
+      await query(`select oq_outreach_queue(50)`);
+      const names = async () => (await one(`select oq_outreach_todo(10) as t`)).t.prospects.map((p: { name: string }) => p.name);
+      expect(await names()).toEqual(["Ann Top", "Cat Solo", "Dan Nofirm", "Eve Nofirm"]);
+      const ann = (await query<{ id: number }>(`select id from items where title = 'Ann Top'`))[0].id;
+      await query(`select oq_outreach_save($1, '{"body":"Hi Ann"}'::jsonb)`, [ann]);
+      expect(await names()).toEqual(["Cat Solo", "Dan Nofirm", "Eve Nofirm"]); // Ben waits while Ann's thread is live
+      await transition(ann, "close");
+      expect(await names()).toEqual(["Ben Next", "Cat Solo", "Dan Nofirm", "Eve Nofirm"]);
+      expect((await one(`select oq_outreach_todo(1) as t`)).t.prospects).toHaveLength(1);
     });
 
     it("saves drafts with validation, and freezes them once sent", async () => {

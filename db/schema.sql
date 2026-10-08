@@ -347,7 +347,18 @@ create or replace function oq_company_key(t text) returns text language sql immu
            '[^a-z0-9]+', ' ', 'g')), '')
 $$;
 
+-- Company keys for each firm in a field like "The Angel Group; Supernatural Ventures" (first firm first).
+create or replace function oq_firm_keys(t text) returns text[] language sql immutable as $$
+  select coalesce(array_agg(k order by ord), '{}') from (
+    select oq_company_key(x.s) as k, min(x.ord) as ord
+      from unnest(regexp_split_to_array(coalesce(t, ''), '\s*[;|]\s*')) with ordinality as x(s, ord)
+     group by 1
+  ) q where k is not null and length(k) >= 3
+$$;
+
 -- Prospects that still need contact info or drafts, with everything a drafter needs.
+-- One person per firm at a time: a firm that already has a live thread (or passed) is skipped,
+-- and within a batch only the best-scoring person at each firm is handed out.
 create or replace function oq_outreach_todo(p_limit int default 10) returns jsonb language sql stable as $$
   select jsonb_build_object(
     'pitch', coalesce((select jsonb_object_agg(key, value) from settings where key like 'pitch.%'), '{}'::jsonb),
@@ -359,14 +370,21 @@ create or replace function oq_outreach_todo(p_limit int default 10) returns json
                'network_matches', (
                  select coalesce(jsonb_agg(jsonb_build_object('name', n.full_name, 'company', n.company, 'position', n.position)), '[]'::jsonb)
                    from network n
-                  where n.company_key is not null and length(n.company_key) >= 3
-                    and n.company_key = oq_company_key(i.details->>'firm')
+                  where n.company_key = any (oq_firm_keys(i.details->>'firm'))
                )
              ) order by i.score desc)
-        from (select o2.* from outreach o2 join items i2 on i2.id = o2.item_id
-               where o2.stage = 'prospect' and i2.status <> 'dismissed'
-               order by i2.score desc limit p_limit) o
-        join items i on i.id = o.item_id
+        from (select * from (
+                select distinct on (coalesce((oq_firm_keys(i2.details->>'firm'))[1], 'item:' || i2.id)) o2.item_id, i2.score
+                  from outreach o2 join items i2 on i2.id = o2.item_id
+                 where o2.stage = 'prospect' and i2.status <> 'dismissed'
+                   and not exists (
+                     select 1 from outreach o3 join items i3 on i3.id = o3.item_id
+                      where o3.stage in ('drafted', 'sent', 'replied', 'meeting', 'passed')
+                        and oq_firm_keys(i3.details->>'firm') && oq_firm_keys(i2.details->>'firm'))
+                 order by coalesce((oq_firm_keys(i2.details->>'firm'))[1], 'item:' || i2.id), i2.score desc, i2.id
+              ) best order by best.score desc limit p_limit) pick
+        join items i on i.id = pick.item_id
+        join outreach o on o.item_id = pick.item_id
     ), '[]'::jsonb)
   )
 $$;

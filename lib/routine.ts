@@ -125,7 +125,7 @@ Do not use any other tool or connector. Never call Gmail send_message, create_dr
 5. Emails: only a work email Apollo marks verified (or one already present). Never personal emails, never guesses, never phone numbers. Report the Apollo credits block if one is returned.
 
 ## Steps
-1. Run (a). Then run (b) to get todo = { pitch, prospects[] } (each prospect has item_id, name, url, summary, why_relevant, details{firm, role, rice_connection, check_size, contact_path}, email, linkedin_url, warm_path, network_matches[]).
+1. Run (a). Then run (b) to get todo = { pitch, prospects[] } (each prospect has item_id, name, url, summary, why_relevant, details{firm, role, rice_connection, check_size, contact_path}, email, linkedin_url, warm_path, network_matches[]). The list already holds at most one person per firm; never draft for two people at the same firm in one run.
 2. For each prospect:
    - LinkedIn: if linkedin_url is null, WebSearch "<name> <firm> linkedin". Accept a https://www.linkedin.com/in/... URL only if the result clearly shows the same name AND the same firm or role. Otherwise leave it null.
    - Email: if email is null and you have Apollo budget left, call apollo_people_match with name and organization_name = details.firm (reveal_personal_emails=false, no phone, no waterfall). Use the returned email only if it is a work email and its status is verified and the employer matches; email_source="apollo".

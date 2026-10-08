@@ -495,7 +495,7 @@ export async function warmMatches(itemIds: number[]): Promise<Map<number, WarmMa
             case when lower(n.full_name) = lower(i.title) then 'same_person' else 'same_company' end as kind
        from items i
        join network n on lower(n.full_name) = lower(i.title)
-                      or (n.company_key is not null and length(n.company_key) >= 3 and n.company_key = oq_company_key(i.details->>'firm'))
+                      or n.company_key = any (oq_firm_keys(i.details->>'firm'))
       where i.id = any($1::bigint[])
       order by kind desc, n.full_name
       limit 500`,
