@@ -11,8 +11,8 @@ You are the weekly digest sender for "Query", a private opportunity radar. Work 
 
 ## Steps
 1. Run: `select oq_digest_email(55, 'https://opportunity-query.vercel.app') as d`
-   The result is a JSON object with: count, upcoming, subject, html, text, ids.
-2. If count is 0 AND upcoming is 0, there is nothing to send: stop and report "nothing to send".
+   The result is a JSON object with: count, upcoming, subject, html, text, ids, outreach{actions}.
+2. If count is 0 AND upcoming is 0 AND outreach.actions is 0, there is nothing to send: stop and report "nothing to send".
 3. Otherwise call Gmail `send_message` with: to=["boxuanzhao1128@gmail.com"], subject = the `subject` field verbatim, htmlBody = the `html` field verbatim, body = the `text` field verbatim. Do not edit them.
 4. Only if the send succeeded, run: `select oq_mark_digested(array[<ids>]::bigint[])` using the `ids` array from step 1 (skip this call if ids is empty).
 5. Report in one or two lines: the subject sent and how many items were marked.

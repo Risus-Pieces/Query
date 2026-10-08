@@ -39,35 +39,53 @@ export const TASKS: ResearchTask[] = [
   {
     id: "sooz-angels-rice",
     section: SOOZ,
-    label: "Angels: Rice alumni network",
+    label: "Angels: Rice network (individuals)",
     kinds: ["angel"],
     upcomingOnly: false,
     maxSearches: 12,
-    brief: `Find individual people connected to Rice University who could plausibly invest in or open doors for a
-pre-seed food & beverage CPG startup: Rice alumni who are angel investors, venture partners, family-office or
-micro-VC principals, successful CPG/food founders, or senior CPG operators (brand, retail, distribution).
-Also include Rice-affiliated investor groups' publicly listed members/leads. Good places to look: Rice Alliance for
-Technology and Entrepreneurship, Rice Business Plan Competition judges and investors, Rice Business (Jones) alumni
-profiles and news, Rice alumni magazine features, Houston-area angel groups, and news about Rice-founded funds.
-Each item is ONE PERSON (title = their full name). Fill in firm, role, rice_connection (e.g. "MBA '09" — only if a
-source states it), check_size (only if a source states it), and contact_path: the most credible public warm path
-(e.g. "speaks at Rice Alliance events; connect via Rice Alliance", "listed on Houston Angel Network team page").
-Never guess or invent emails or phone numbers. Put a Rice tag "rice" in tags for confirmed Rice alumni.`,
+    brief: `Find INDIVIDUAL PEOPLE connected to Rice University who could invest in or open doors for a pre-seed beverage
+brand: Rice alumni who angel invest, Rice-affiliated angel-network leads and members, Rice Business Plan Competition
+judges and investor-panelists, Rice Alliance / Liu Idea Lab (Lilie) / OwlSpark mentors and advisors who invest,
+Rice Business (Jones) alumni at consumer funds, and Rice alumni who founded or ran CPG/food/beverage brands.
+Each item is ONE PERSON (title = full name). Never submit a group, fund or program as an item — if you only find a
+group, search for its publicly named leaders, committee chairs or members and submit them instead.
+Fill firm, role, rice_connection (only if a source states it, e.g. "MBA '09"), check_size (only if stated), and
+contact_path: the most credible public route (e.g. "Rice Alliance mentor — ask the Rice Alliance team for an intro",
+"judge at RBPC 2026"). Prefer people with evidence of consumer/CPG/food interest; still include strong Rice
+connectors (score lower if no consumer signal). Never guess or invent emails or phone numbers.`,
   },
   {
     id: "sooz-angels-cpg",
     section: SOOZ,
-    label: "Angels: CPG & food/bev investors",
+    label: "Angels: beverage & CPG operators (individuals)",
+    kinds: ["angel"],
+    upcomingOnly: false,
+    maxSearches: 14,
+    brief: `Find INDIVIDUAL angel investors who wrote pre-seed or seed checks into beverage, food or CPG brands in the last
+24 months. The best evidence is a round announcement that names them, so mine recent funding news: search BevNET,
+NOSH, Taste Radio, Food Dive, FoodNavigator-USA, Indie CPG, PR Newswire and Business Wire for phrases like
+"participation from angel investors including", "seasoned CPG operators", "other participants included" together
+with "pre-seed" or "seed" and "beverage". Also look at operator-angels (founders/executives of scaled or exited
+beverage and CPG brands), CPG syndicate leads (e.g. The Angel Group, Consumer Packaged Growth on AngelList), Startup
+CPG "Investor Spotlight" guests, and NFX Signal / OpenVC food & beverage angel lists. Each item is ONE PERSON
+(title = full name) with firm/role, a one-line proof in summary naming the brands they backed and when, check_size
+only if stated, and a public contact_path (syndicate page, community, podcast, event). Score higher for beverage
+specifically, for repeat recent checks, and for Texas ties. Never submit a fund or group as an item.`,
+  },
+  {
+    id: "sooz-angels-texas",
+    section: SOOZ,
+    label: "Angels: Texas consumer investors (individuals)",
     kinds: ["angel"],
     upcomingOnly: false,
     maxSearches: 12,
-    brief: `Find individual angel investors, scout/micro-VC partners and operator-angels who actively back
-early-stage (pre-seed / seed) food, beverage and CPG brands — NOT limited to Rice. Prioritize people with recent
-public evidence of such investments (portfolio pages, press, podcasts, announced rounds in the last 24 months),
-people based in or near the user's home base, and founders-turned-investors from successful food/bev exits.
-Each item is ONE PERSON (title = full name), with firm, role, check_size (only if stated), a one-line portfolio
-proof in summary (named companies), and contact_path (public warm path: a specific community, program, or event
-where they are accessible). Never guess or invent emails or phone numbers. Tag with "rice" only if confirmed.`,
+    brief: `Find INDIVIDUAL angel investors in Texas who back early-stage consumer/CPG brands. Austin is the Texas CPG hub:
+look at SKU accelerator mentors and investors, Naturally Austin leaders, Central Texas Angel Network members active in
+consumer, and Austin founders/executives of brands that scaled or exited (beverage, snacks, natural foods) who now
+angel invest. Also Houston (Houston Angel Network consumer committee members, TiE Houston Angels food & beverage
+investors, Houston consumer founders who invest) and Dallas (consumer angels, Dallas Angel Network). Each item is ONE
+PERSON with evidence of consumer/CPG angel activity (named portfolio brands, a quote, a committee role), check_size
+only if stated, and a public contact_path. Never submit a group as an item; find its named people.`,
   },
   {
     id: "sooz-events-cpg",

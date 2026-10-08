@@ -60,7 +60,7 @@ An optional API-key path exists for running research from a script instead of a 
 ## Notes and limits
 
 - **Public information only.** The agent is instructed to use public professional sources and never to guess
-  emails/phones. Rice's alumni directory (Owls Connect) is login-gated and not scraped.
+  emails/phones. Rice's alumni tools (alumni directory, Sallyportal, Ask an Owl) are login-gated and not scraped; use them by hand for warm intros.
 - **Search-only research.** WebFetch is blocked by the cloud environment's network allowlist unless you widen
   *Network access* in the environment settings, so research relies on search results. Dates found only on
   aggregator sites are tagged `verify-dates` — confirm at the source before acting.
