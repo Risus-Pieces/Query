@@ -1,11 +1,7 @@
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
-import { closePool, getPool } from "../lib/db";
+import { closePool } from "../lib/db";
+import { ensureSchema } from "../lib/migrate";
 
-const here = dirname(fileURLToPath(import.meta.url));
-const sql = readFileSync(join(here, "../db/schema.sql"), "utf8");
-
-await getPool().query(sql);
-console.log("Schema is up to date.");
+// Usage: npm run db:migrate [-- --force]
+const r = await ensureSchema(undefined, process.argv.includes("--force"));
+console.log(r === "applied" ? "Schema applied." : "Schema is up to date.");
 await closePool();

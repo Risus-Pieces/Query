@@ -1,7 +1,10 @@
 import type { CSSProperties } from "react";
+import Link from "next/link";
 import { saveNotes, updateStatus } from "@/app/actions";
+import { addToOutreach } from "@/app/outreach/actions";
+import type { Stage } from "@/lib/outreach";
 import type { Item, Status } from "@/lib/types";
-import { CheckCircleIcon, ChevronIcon, StarIcon, UndoIcon, XIcon } from "./icons";
+import { CheckCircleIcon, ChevronIcon, PersonPlusIcon, StarIcon, UndoIcon, XIcon } from "./icons";
 
 function StatusButton({
   id,
@@ -52,7 +55,7 @@ function ringColor(score: number): string {
   return score >= 80 ? "var(--green)" : score >= 60 ? "var(--blue)" : "var(--orange)";
 }
 
-export default function ItemCard({ item }: { item: Item }) {
+export default function ItemCard({ item, outreachStage = null }: { item: Item; outreachStage?: Stage | null }) {
   const d = item.details ?? {};
   const isAngel = item.kind === "angel";
   const facts: [string, string][] = [];
@@ -133,6 +136,22 @@ export default function ItemCard({ item }: { item: Item }) {
             icon={<CheckCircleIcon />}
             label={item.status === "contacted" ? "Contacted" : "Mark contacted"}
           />
+        ) : null}
+        {isAngel && item.status !== "dismissed" ? (
+          outreachStage ? (
+            <Link className="btn done" data-on="true" href={`/outreach#p-${item.id}`}>
+              <PersonPlusIcon size={15} />
+              In outreach
+            </Link>
+          ) : (
+            <form action={addToOutreach}>
+              <input type="hidden" name="id" value={item.id} />
+              <button className="btn">
+                <PersonPlusIcon size={15} />
+                Add to outreach
+              </button>
+            </form>
+          )
         ) : null}
         {item.status === "dismissed" ? (
           <StatusButton id={item.id} status="seen" icon={<UndoIcon />} label="Restore" />

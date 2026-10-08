@@ -1,7 +1,9 @@
 import Link from "next/link";
 import ItemCard from "@/components/ItemCard";
 import { DownloadIcon, SearchIcon, TrayIcon } from "@/components/icons";
-import { logout, seeAll } from "./actions";
+import { seeAll } from "./actions";
+import Header from "@/components/Header";
+import { outreachActionCount, outreachStages } from "@/lib/outreach";
 import {
   SORTS,
   VIEWS,
@@ -48,7 +50,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<SP>
   const defaultSort: Sort = kind === "event" || kind === "hackathon" ? "date" : "score";
   const sort = (SORTS as readonly string[]).includes(one(sp.sort) ?? "") ? (one(sp.sort) as Sort) : defaultSort;
 
-  const [items, counts, kinds, fresh, runs, soozNew, personalNew] = await Promise.all([
+  const [items, counts, kinds, fresh, runs, soozNew, personalNew, outreachActions, stages] = await Promise.all([
     listItems({ section, view, kind, q, rice, sort }),
     viewCounts(section),
     kindCounts(section, view),
@@ -56,6 +58,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<SP>
     recentRuns(),
     newCount("sooz"),
     newCount("personal"),
+    outreachActionCount(),
+    outreachStages(),
   ]);
   const newBySection: Record<Section, number> = { sooz: soozNew, personal: personalNew };
 
@@ -64,28 +68,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<SP>
 
   return (
     <div className="wrap">
-      <header className="title-row">
-        <div>
-          <h1 className="large-title">Query</h1>
-          <p className="subtitle">{SECTION_META[section].tagline}</p>
-        </div>
-        <form action={logout}>
-          <button className="text-btn">Sign out</button>
-        </form>
-      </header>
-
-      <div className="toolbar">
-        <div className="toolbar-inner">
-          <nav className="seg large" aria-label="Section">
-            {SECTIONS.map((s) => (
-              <Link key={s} href={`/?section=${s}`} aria-current={s === section ? "page" : undefined}>
-                {SECTION_META[s].label}
-                {newBySection[s] > 0 ? <span className="new-pill">{newBySection[s]}</span> : null}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      </div>
+      <Header
+        active={section}
+        subtitle={SECTION_META[section].tagline}
+        badges={{ sooz: soozNew, personal: personalNew, outreach: outreachActions }}
+      />
 
       <form className="search" action="/" method="get">
         <input type="hidden" name="section" value={section} />
@@ -172,7 +159,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<SP>
       ) : (
         <div className="group">
           {items.map((i) => (
-            <ItemCard key={i.id} item={i} />
+            <ItemCard key={i.id} item={i} outreachStage={stages.get(i.id) ?? null} />
           ))}
         </div>
       )}

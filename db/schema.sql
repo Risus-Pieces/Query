@@ -43,6 +43,67 @@ create table if not exists runs (
 create index if not exists runs_started_idx on runs (started_at desc);
 
 -- ---------------------------------------------------------------------------------------------
+-- Outreach pipeline (angels). One row per angel item in the pipeline. Sending is always done by a
+-- human (Gmail compose / LinkedIn); the routine only enriches, drafts, and detects replies.
+-- ---------------------------------------------------------------------------------------------
+
+create table if not exists settings (
+  key         text primary key,
+  value       text not null default '',
+  updated_at  timestamptz not null default now()
+);
+
+create table if not exists outreach (
+  item_id          bigint primary key references items(id) on delete cascade,
+  stage            text not null default 'prospect'
+                     check (stage in ('prospect', 'drafted', 'sent', 'replied', 'meeting', 'passed', 'closed')),
+  email            text,
+  email_source     text,
+  linkedin_url     text,
+  warm_path        text,
+  subject          text,
+  body             text,
+  linkedin_note    text,
+  intro_request    text,
+  followup_1       text,
+  followup_2       text,
+  drafted_by       text,
+  drafted_at       timestamptz,
+  sent_at          timestamptz,
+  last_touch_at    timestamptz,
+  next_followup_at date,
+  touches          integer not null default 0,
+  replied_at       timestamptz,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+create index if not exists outreach_stage_idx on outreach (stage);
+
+create table if not exists outreach_events (
+  id       bigserial primary key,
+  item_id  bigint not null references items(id) on delete cascade,
+  at       timestamptz not null default now(),
+  kind     text not null,
+  detail   text not null default ''
+);
+create index if not exists outreach_events_item_idx on outreach_events (item_id, at desc);
+
+-- Your own network (e.g. a LinkedIn "Connections.csv" export) for warm-intro matching.
+create table if not exists network (
+  id            bigserial primary key,
+  full_name     text not null,
+  company       text,
+  position      text,
+  linkedin_url  text,
+  email         text,
+  connected_on  date,
+  source        text not null default 'linkedin',
+  company_key   text,
+  dedupe_key    text not null unique
+);
+create index if not exists network_company_key_idx on network (company_key);
+
+-- ---------------------------------------------------------------------------------------------
 -- Server-side ingest + digest. The weekly research routine (a Claude session on a Max plan, with
 -- only the Neon connector) writes through oq_ingest(); the digest routine reads through
 -- oq_digest_email(). Mirrors lib/research.ts (validateCandidates/persistCandidates) and lib/dedupe.ts.
@@ -188,6 +249,7 @@ declare
   t_up text := ''; t_ang text := ''; t_oth text := ''; t_per text := '';
   n_up int := 0; n_ang int := 0; n_oth int := 0; n_per int := 0; n_fresh int := 0;
   li text; tx text; subj text; html text; txt text;
+  o_drafts int := 0; o_due int := 0; o_replies int := 0; o_html text := ''; o_txt text := '';
 begin
   select coalesce(array_agg(x order by x.section, x.score desc, x.first_seen desc), '{}') into fresh
     from items x where x.digested_at is null and x.status = 'new' and x.score >= p_min_score;
@@ -215,6 +277,24 @@ begin
     else h_oth := h_oth || li; t_oth := t_oth || tx || E'\n'; n_oth := n_oth + 1; end if;
   end loop;
 
+  select count(*) filter (where o.stage = 'drafted'),
+         count(*) filter (where o.stage = 'sent' and o.next_followup_at <= today),
+         count(*) filter (where o.stage = 'replied' and o.replied_at > now() - interval '8 days')
+    into o_drafts, o_due, o_replies
+    from outreach o;
+  if o_drafts + o_due + o_replies > 0 then
+    o_html := '<h2 style="font-size:16px;margin:24px 0 8px">Outreach</h2><p style="margin:0">'
+      || concat_ws(' · ',
+           case when o_drafts > 0 then o_drafts || ' draft' || case when o_drafts = 1 then '' else 's' end || ' to review' end,
+           case when o_due > 0 then o_due || ' follow-up' || case when o_due = 1 then '' else 's' end || ' due' end,
+           case when o_replies > 0 then o_replies || ' new repl' || case when o_replies = 1 then 'y' else 'ies' end end)
+      || case when p_dashboard_url is not null then ' · <a href="' || oq_esc(p_dashboard_url) || '/outreach">Open outreach</a>' else '' end || '</p>';
+    o_txt := E'\nOUTREACH\n' || concat_ws(' · ',
+           case when o_drafts > 0 then o_drafts || ' drafts to review' end,
+           case when o_due > 0 then o_due || ' follow-ups due' end,
+           case when o_replies > 0 then o_replies || ' new replies' end) || E'\n';
+  end if;
+
   subj := format('Query digest: %s new find%s%s (%s)', n_fresh, case when n_fresh = 1 then '' else 's' end,
                  case when n_up > 0 then ', ' || n_up || ' coming up' else '' end, today);
   html := '<!doctype html><html><body style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:640px;margin:0 auto;padding:16px;color:#111;line-height:1.45">'
@@ -224,17 +304,138 @@ begin
     || case when n_ang > 0 then '<h2 style="font-size:16px;margin:24px 0 8px">Sooz — new angels (' || n_ang || ')</h2><ul style="padding-left:18px;margin:0">' || h_ang || '</ul>' else '' end
     || case when n_oth > 0 then '<h2 style="font-size:16px;margin:24px 0 8px">Sooz — events, funding &amp; resources (' || n_oth || ')</h2><ul style="padding-left:18px;margin:0">' || h_oth || '</ul>' else '' end
     || case when n_per > 0 then '<h2 style="font-size:16px;margin:24px 0 8px">Personal (' || n_per || ')</h2><ul style="padding-left:18px;margin:0">' || h_per || '</ul>' else '' end
+    || o_html
     || '</body></html>';
   txt := 'QUERY DIGEST — ' || today || E'\n'
     || case when p_dashboard_url is not null then 'Dashboard: ' || p_dashboard_url || E'\n' else '' end
     || case when n_up > 0 then E'\nCOMING UP IN THE NEXT 14 DAYS (' || n_up || E')\n' || t_up else '' end
     || case when n_ang > 0 then E'\nSOOZ — NEW ANGELS (' || n_ang || E')\n' || t_ang else '' end
     || case when n_oth > 0 then E'\nSOOZ — EVENTS, FUNDING & RESOURCES (' || n_oth || E')\n' || t_oth else '' end
-    || case when n_per > 0 then E'\nPERSONAL (' || n_per || E')\n' || t_per else '' end;
+    || case when n_per > 0 then E'\nPERSONAL (' || n_per || E')\n' || t_per else '' end
+    || o_txt;
 
-  return jsonb_build_object('count', n_fresh, 'upcoming', n_up, 'subject', subj, 'html', html, 'text', txt, 'ids', to_jsonb(ids));
+  return jsonb_build_object('count', n_fresh, 'upcoming', n_up, 'subject', subj, 'html', html, 'text', txt, 'ids', to_jsonb(ids),
+                            'outreach', jsonb_build_object('drafts', o_drafts, 'followups_due', o_due, 'new_replies', o_replies,
+                                                           'actions', o_drafts + o_due + o_replies));
 end $$;
 
 create or replace function oq_mark_digested(p_ids bigint[]) returns int language sql as $$
   with u as (update items set digested_at = now() where id = any (p_ids) returning 1) select count(*)::int from u
 $$;
+
+-- ---------------------------------------------------------------------------------------------
+-- Outreach functions used by the routines (they may only call these, never raw DML).
+-- ---------------------------------------------------------------------------------------------
+
+-- Put high-fit, non-dismissed angels into the pipeline. Returns how many were added.
+create or replace function oq_outreach_queue(p_min_score int default 70) returns int language sql as $$
+  with ins as (
+    insert into outreach (item_id)
+    select i.id from items i
+     where i.section = 'sooz' and i.kind = 'angel' and i.score >= p_min_score
+       and i.status not in ('dismissed')
+       and not exists (select 1 from outreach o where o.item_id = i.id)
+    on conflict do nothing
+    returning 1
+  )
+  select count(*)::int from ins
+$$;
+
+create or replace function oq_company_key(t text) returns text language sql immutable as $$
+  select nullif(btrim(regexp_replace(regexp_replace(lower(coalesce(t, '')),
+           '\m(inc|llc|l\.l\.c|ltd|co|corp|corporation|company|the|lp|llp|plc)\M\.?', '', 'g'),
+           '[^a-z0-9]+', ' ', 'g')), '')
+$$;
+
+-- Prospects that still need contact info or drafts, with everything a drafter needs.
+create or replace function oq_outreach_todo(p_limit int default 10) returns jsonb language sql stable as $$
+  select jsonb_build_object(
+    'pitch', coalesce((select jsonb_object_agg(key, value) from settings where key like 'pitch.%'), '{}'::jsonb),
+    'prospects', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'item_id', i.id, 'name', i.title, 'url', i.url, 'summary', i.summary, 'why_relevant', i.why_relevant,
+               'score', i.score, 'tags', i.tags, 'details', i.details, 'location', i.location,
+               'email', o.email, 'linkedin_url', o.linkedin_url, 'warm_path', o.warm_path,
+               'network_matches', (
+                 select coalesce(jsonb_agg(jsonb_build_object('name', n.full_name, 'company', n.company, 'position', n.position)), '[]'::jsonb)
+                   from network n
+                  where n.company_key is not null and length(n.company_key) >= 3
+                    and n.company_key = oq_company_key(i.details->>'firm')
+               )
+             ) order by i.score desc)
+        from (select o2.* from outreach o2 join items i2 on i2.id = o2.item_id
+               where o2.stage = 'prospect' and i2.status <> 'dismissed'
+               order by i2.score desc limit p_limit) o
+        join items i on i.id = o.item_id
+    ), '[]'::jsonb)
+  )
+$$;
+
+
+-- Save enrichment and drafts for one prospect. Only touches prospects/drafts, never sent threads.
+create or replace function oq_outreach_save(p_item_id bigint, p jsonb) returns jsonb language plpgsql as $$
+declare
+  o outreach;
+  v_email text := nullif(lower(btrim(coalesce(p->>'email', ''))), '');
+  v_li text := nullif(btrim(coalesce(p->>'linkedin_url', '')), '');
+  v_body text := nullif(btrim(coalesce(p->>'body', '')), '');
+begin
+  select * into o from outreach where item_id = p_item_id for update;
+  if not found then raise exception 'item % is not in the outreach pipeline', p_item_id; end if;
+  if o.stage not in ('prospect', 'drafted') then
+    return jsonb_build_object('ok', false, 'reason', 'stage is ' || o.stage || '; drafts are frozen once sent');
+  end if;
+  if v_email is not null and v_email !~ '^[a-z0-9._%+''-]+@[a-z0-9.-]+\.[a-z]{2,}$' then v_email := null; end if;
+  if v_li is not null and v_li !~* '^https://([a-z]{2,3}\.)?linkedin\.com/in/[^/?#\s]+/?$' then v_li := null; end if;
+
+  update outreach set
+    email         = coalesce(v_email, email),
+    email_source  = case when v_email is not null then left(coalesce(nullif(p->>'email_source', ''), 'routine'), 40) else email_source end,
+    linkedin_url  = coalesce(v_li, linkedin_url),
+    warm_path     = coalesce(left(nullif(btrim(p->>'warm_path'), ''), 500), warm_path),
+    subject       = coalesce(left(nullif(btrim(p->>'subject'), ''), 160), subject),
+    body          = coalesce(left(v_body, 3000), body),
+    linkedin_note = coalesce(left(nullif(btrim(p->>'linkedin_note'), ''), 300), linkedin_note),
+    intro_request = coalesce(left(nullif(btrim(p->>'intro_request'), ''), 2000), intro_request),
+    followup_1    = coalesce(left(nullif(btrim(p->>'followup_1'), ''), 1500), followup_1),
+    followup_2    = coalesce(left(nullif(btrim(p->>'followup_2'), ''), 1500), followup_2),
+    drafted_by    = case when v_body is not null then 'claude' else drafted_by end,
+    drafted_at    = case when v_body is not null then now() else drafted_at end,
+    stage         = case when v_body is not null or o.body is not null then 'drafted' else stage end,
+    updated_at    = now()
+  where item_id = p_item_id;
+  insert into outreach_events (item_id, kind, detail)
+    values (p_item_id, 'routine_saved', left(concat_ws(', ',
+      case when v_email is not null then 'email' end, case when v_li is not null then 'linkedin' end,
+      case when v_body is not null then 'draft' end), 200));
+  return jsonb_build_object('ok', true, 'email_saved', v_email is not null, 'linkedin_saved', v_li is not null,
+                            'draft_saved', v_body is not null);
+end $$;
+
+-- Threads we are waiting on (for reply / sent detection in Gmail).
+create or replace function oq_outreach_watch() returns jsonb language sql stable as $$
+  select coalesce(jsonb_agg(jsonb_build_object('item_id', o.item_id, 'name', i.title, 'email', o.email,
+                                               'stage', o.stage, 'subject', o.subject, 'sent_at', o.sent_at)), '[]'::jsonb)
+    from outreach o join items i on i.id = o.item_id
+   where o.email is not null and o.stage in ('drafted', 'sent')
+$$;
+
+-- Record what Gmail shows: 'sent' (the user sent the first email) or 'replied'.
+create or replace function oq_outreach_observe(p_item_id bigint, p_event text, p_at timestamptz) returns text language plpgsql as $$
+declare o outreach;
+begin
+  select * into o from outreach where item_id = p_item_id for update;
+  if not found then return 'not found'; end if;
+  if p_event = 'sent' and o.stage = 'drafted' then
+    update outreach set stage = 'sent', sent_at = coalesce(p_at, now()), last_touch_at = coalesce(p_at, now()),
+           touches = greatest(touches, 1), next_followup_at = (coalesce(p_at, now()) + interval '5 days')::date, updated_at = now()
+     where item_id = p_item_id;
+  elsif p_event = 'replied' and o.stage in ('drafted', 'sent') then
+    update outreach set stage = 'replied', replied_at = coalesce(p_at, now()), next_followup_at = null, updated_at = now()
+     where item_id = p_item_id;
+  else
+    return 'ignored';
+  end if;
+  insert into outreach_events (item_id, kind, detail) values (p_item_id, 'gmail_' || p_event, coalesce(p_at::text, ''));
+  return 'ok';
+end $$;
