@@ -1,0 +1,102 @@
+[
+  {
+    "kind": "angel",
+    "title": "Gabriela Morales",
+    "url": "https://www.tasteradio.com/episodes/2025/60-brands-7-million-how-ignite20-is-funding-the-future-of-cpg/",
+    "source": "Taste Radio",
+    "summary": "Co-founder and managing director (CEO in some coverage) of Ignite20 Ventures, a $7M CPG fund and hybrid accelerator launched February 2025 that invests $50,000 in each of about 20 early-stage food, beverage, health, beauty and pet brands a year (60 over three years), ending in a Bentonville demo day; discussed on Taste Radio Ep. 716 (April 2025).",
+    "why_relevant": "Writes pre-seed-sized $50K checks into early food and beverage brands with retail-buyer access, a direct fit for Sooz's first raise.",
+    "score": 70,
+    "tags": ["cpg", "beverage", "food", "pre-seed", "accelerator", "fund"],
+    "event_date": null,
+    "deadline": null,
+    "location": "Bentonville, AR (program demo day)",
+    "details": {
+      "firm": "Ignite20 Ventures",
+      "role": "Co-founder & Managing Director (CEO in some coverage)",
+      "rice_connection": null,
+      "check_size": "$50K per selected company (fund program terms)",
+      "contact_path": "Apply to an Ignite20 Ventures cohort; Taste Radio Ep. 716 (April 2025)"
+    }
+  },
+  {
+    "kind": "angel",
+    "title": "Kyle Fitzpatrick",
+    "url": "https://www.bevnet.com/news/2025/inside-paperboys-venture-media-hybrid-fund-i",
+    "source": "BevNET",
+    "summary": "Founder of Paperboy Ventures, a CPG investor-media platform whose Fund I (target up to $3M, covered by BevNET in Nov 2025) planned to deploy during 2026 into seed-to-Series A food and beverage brands with up to $10M net revenue; Paperboy showcases have featured brands such as Sauz, The Coconut Cult and Parch. He was a semifinal judge at BevNET's New Beverage Showdown in June 2026.",
+    "why_relevant": "Small-fund early-stage CPG investor who judges beverage pitch events and showcases brands to a wide investor audience.",
+    "score": 66,
+    "tags": ["cpg", "beverage", "seed", "judge", "fund"],
+    "event_date": null,
+    "deadline": null,
+    "location": null,
+    "details": {
+      "firm": "Paperboy Ventures",
+      "role": "Founder",
+      "rice_connection": null,
+      "check_size": null,
+      "contact_path": "Paperboy Ventures newsletter/podcast and brand showcase cohorts; BevNET New Beverage Showdown (semifinal judge, June 2026)"
+    }
+  },
+  {
+    "kind": "angel",
+    "title": "Nate Cooper",
+    "url": "https://podcastrex.com/shows/the-startup-cpg-podcast/investor-spotlight-nate-cooper-barrel-ventures",
+    "source": "Startup CPG Podcast (Podcast Rex listing)",
+    "summary": "Barrel Ventures investor featured on Startup CPG's Investor Spotlight; says Olipop was his very first check, and describes Barrel as investing pre-seed to Series A in anything touching food, from pre-farm to post-fork. Episode date and recent deals were not confirmed.",
+    "why_relevant": "Pre-seed-capable food investor with a breakout beverage win (Olipop) and a public Startup CPG profile.",
+    "score": 62,
+    "tags": ["cpg", "food", "beverage", "pre-seed", "fund"],
+    "event_date": null,
+    "deadline": null,
+    "location": null,
+    "details": {
+      "firm": "Barrel Ventures",
+      "role": "Investor, Barrel Ventures",
+      "rice_connection": null,
+      "check_size": null,
+      "contact_path": "Startup CPG community (Investor Spotlight episode); Barrel Ventures"
+    }
+  },
+  {
+    "kind": "angel",
+    "title": "Alex Malamatinas",
+    "url": "https://startupcpg.transistor.fm/episodes/155-the-beverage-investors-salle-jian-alex-malamatinas-brandon-yahn-and-connor-mckenna/transcript",
+    "source": "Startup CPG Podcast",
+    "summary": "Founder and managing partner of New York's Melitas Ventures (better-for-you food and beverage; seed and Series A, typically $500K-$3M per investor profiles); listed boards include Lemon Perfect, Verb Energy and MUD WTR, and aggregators show a Final Boss Sour seed deal (May 2025). Featured on Startup CPG Ep. 155, 'The Beverage Investors'.",
+    "why_relevant": "Beverage-savvy lead investor, but check sizes make him a next-round target rather than a pre-seed angel.",
+    "score": 58,
+    "tags": ["cpg", "beverage", "seed", "later-stage", "fund", "verify-dates"],
+    "event_date": null,
+    "deadline": null,
+    "location": "New York, NY",
+    "details": {
+      "firm": "Melitas Ventures",
+      "role": "Founder & Managing Partner",
+      "rice_connection": null,
+      "check_size": "$500K-$3M typical (firm-level, investor profiles)",
+      "contact_path": "Startup CPG community (Ep. 155 'The Beverage Investors'); Melitas Ventures"
+    }
+  },
+  {
+    "kind": "angel",
+    "title": "Madeline Haydon",
+    "url": "https://www.bevnet.com/news/2026/six-finalists-move-forward-in-new-beverage-showdown-31",
+    "source": "BevNET",
+    "summary": "Founder of nutpods (dairy-free creamer launched in 2015, backed by CircleUp Growth Partners and VMG Partners, later acquired by MPearlRock); a semifinal judge at BevNET's New Beverage Showdown during BevNET Live NYC (June 2026). No personal angel investments were found.",
+    "why_relevant": "Exited beverage-adjacent founder who judges early-stage beverage pitches; a Showdown entry puts Sooz in front of her.",
+    "score": 50,
+    "tags": ["beverage", "cpg", "operator", "judge"],
+    "event_date": null,
+    "deadline": null,
+    "location": null,
+    "details": {
+      "firm": "nutpods",
+      "role": "Founder, nutpods",
+      "rice_connection": null,
+      "check_size": null,
+      "contact_path": "BevNET New Beverage Showdown (apply via BevNET Live); nutpods"
+    }
+  }
+]

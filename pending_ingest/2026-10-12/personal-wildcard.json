@@ -1,0 +1,44 @@
+[
+  {
+    "kind": "event",
+    "title": "SXSW Pitch 2027",
+    "url": "https://sxsw.com/news/2026/2027-pitch-applications/",
+    "source": "SXSW",
+    "summary": "SXSW's startup pitch competition, March 16-17, 2027 at the Hilton Austin. Regular entry is $225 (nonrefundable; early-bird ended Sept 13). SXSW's Pitch page gives a final deadline of Nov 13, 2026 but its support center says Nov 11, so applying by Nov 11 is safest.",
+    "why_relevant": "Texas's highest-visibility startup pitch stage; worth it if Sooz or an AI side project wants national exposure.",
+    "score": 68,
+    "tags": ["sxsw", "pitch", "startup", "austin", "texas", "competition", "verify-dates"],
+    "event_date": "2027-03-16",
+    "deadline": "2026-11-11",
+    "location": "Austin, TX",
+    "details": { "firm": null, "role": null, "rice_connection": null, "check_size": null, "contact_path": null }
+  },
+  {
+    "kind": "other",
+    "title": "Vesuvius Challenge $1M Grand Prize (2027)",
+    "url": "https://scrollprize.substack.com/p/a-new-1m-grand-prize-for-2027",
+    "source": "Vesuvius Challenge (Scroll Prize)",
+    "summary": "Open machine-learning and computer-vision competition to read the carbonized Herculaneum scrolls. A new $1M grand prize goes to the first team to fully unroll and make readable another complete eligible scroll using no more than eight hours of human input; deadline June 25, 2027. Other open prizes run alongside it.",
+    "why_relevant": "A rare big-prize open problem mixing AI, archaeology and history; anyone can join remotely.",
+    "score": 64,
+    "tags": ["competition", "prize", "machine-learning", "archaeology", "open-call", "virtual"],
+    "event_date": null,
+    "deadline": "2027-06-25",
+    "location": "virtual",
+    "details": { "firm": null, "role": null, "rice_connection": null, "check_size": null, "contact_path": null }
+  },
+  {
+    "kind": "other",
+    "title": "ARC Prize 2026",
+    "url": "https://arcprize.org/competitions/2026",
+    "source": "ARC Prize",
+    "summary": "$2M in prizes across three tracks for progress on the ARC-AGI reasoning benchmark; entries are Kaggle notebooks and winners must open-source their solutions. Submissions due Nov 2, 2026; papers due Nov 8; results announced Dec 4.",
+    "why_relevant": "Headline AI-reasoning competition; the paper track lets a curious builder contribute ideas without topping the leaderboard.",
+    "score": 60,
+    "tags": ["ai", "competition", "prize", "kaggle", "open-source", "virtual"],
+    "event_date": null,
+    "deadline": "2026-11-02",
+    "location": "virtual",
+    "details": { "firm": null, "role": null, "rice_connection": null, "check_size": null, "contact_path": null }
+  }
+]

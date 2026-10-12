@@ -1,0 +1,44 @@
+[
+  {
+    "kind": "event",
+    "title": "Central Texas Angel Network 2026 Funding Cycle 5 Info Session",
+    "url": "https://www.eventbrite.ca/o/central-texas-angel-network-2045558373",
+    "source": "Central Texas Angel Network (Eventbrite)",
+    "summary": "CTAN's Eventbrite page lists 2026 Funding Cycle info sessions; the Cycle 5 session is Oct 13, 2026 at 12:00 (UTC-5). Sessions explain the funding-cycle process and what angels look for, and CTAN strongly encourages applicants to attend. CTAN has accepted capped post-money SAFEs since Oct 2025; the Cycle 5 application deadline is not listed.",
+    "why_relevant": "Free walkthrough of how a large Texas angel group screens deals; Sooz could pitch in a later cycle. Format (online or in person) not confirmed.",
+    "score": 55,
+    "tags": ["angel-group", "texas", "austin", "info-session", "verify-dates"],
+    "event_date": "2026-10-13",
+    "deadline": null,
+    "location": null,
+    "details": { "firm": null, "role": null, "rice_connection": null, "check_size": null, "contact_path": null }
+  },
+  {
+    "kind": "event",
+    "title": "Lone Star Investor Forum (SCORE Houston)",
+    "url": "https://www.score.org/tx/houston/business-education/lone-star-investor-forum/",
+    "source": "SCORE Houston",
+    "summary": "In-person forum where entrepreneurs pitch to investors and industry experts for funding: Oct 17, 2026, 6-9pm CDT at SCORE Houston, 8701 S Gessner, Suite 1200. Free admission; more details at investigoonline.com/events. Single source; presenter selection and any pitch fee not stated.",
+    "why_relevant": "Local Houston investor pitch night within a week; low-cost way to practice the pitch and meet local angels.",
+    "score": 52,
+    "tags": ["pitch-night", "houston", "investors", "free"],
+    "event_date": "2026-10-17",
+    "deadline": null,
+    "location": "Houston, TX",
+    "details": { "firm": null, "role": null, "rice_connection": null, "check_size": null, "contact_path": null }
+  },
+  {
+    "kind": "event",
+    "title": "Founder Hotseat: Pitch Your Startup to Houston Investors & Advisors",
+    "url": "https://fi.co/e/382696/meetup",
+    "source": "Founder Institute",
+    "summary": "Founder Institute Houston session on Oct 29, 2026, 3:30-6:00pm at the Niels Esperson Building, 808 Travis St. Attendees give 1-minute pitches that a panel of experts rates 1-5 with feedback; attending without pitching is allowed. It recruits for FI's pre-seed program (a listing names the Spring 2027 Houston cohort). Panel investors not named.",
+    "why_relevant": "Free, low-stakes pitch reps in front of Houston investors and advisors; general tech audience, little CPG focus.",
+    "score": 48,
+    "tags": ["pitch-practice", "houston", "pre-seed", "founder-institute", "verify-dates"],
+    "event_date": "2026-10-29",
+    "deadline": null,
+    "location": "Houston, TX",
+    "details": { "firm": null, "role": null, "rice_connection": null, "check_size": null, "contact_path": null }
+  }
+]

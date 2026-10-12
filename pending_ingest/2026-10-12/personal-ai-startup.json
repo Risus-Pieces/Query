@@ -1,0 +1,72 @@
+[
+  {
+    "kind": "event",
+    "title": "TiECon Texas 2026",
+    "url": "https://www.sharedaudiences.com/events/tiecon-texas-2026",
+    "source": "Shared Audiences (event listing)",
+    "summary": "TiE Houston's two-day conference for founders, investors and mentors at the Ion, Oct 28-29, 2026. Oct 28 is a half-day opener with a founder Pitch Fest; Oct 29 is a full day on the automation revolution (AI/ML in operations, robotics, autonomous energy systems). The related Hatch Pitch application deadline (Sept 23) has passed.",
+    "why_relevant": "Largest founder-focused AI/automation conference in Houston this fall, at the Ion; strong for meeting local founders and investors.",
+    "score": 74,
+    "tags": ["houston", "ai", "founders", "conference", "tie", "verify-dates"],
+    "event_date": "2026-10-28",
+    "deadline": null,
+    "location": "The Ion, Houston, TX",
+    "details": { "firm": null, "role": null, "rice_connection": null, "check_size": null, "contact_path": null }
+  },
+  {
+    "kind": "hackathon",
+    "title": "Nebius x NVIDIA Global AI Hackathon 2026",
+    "url": "https://internshala.com/competitions/?p=11205",
+    "source": "Internshala (competition listing)",
+    "summary": "Fully online Devpost hackathon; projects must run on Nebius Token Factory or Nebius AI Cloud and use at least one NVIDIA open-source model. Submissions close Oct 30, 2026 at 10:00 AM PT; judging Dec 1-15. Listing cites a $20,000 grand prize ($10,000 second, $6,000 third); other sources cite a ~$50K total pool.",
+    "why_relevant": "Open-now virtual AI build with cash prizes and about 18 days of runway; a good forcing function to ship an AI project.",
+    "score": 64,
+    "tags": ["ai", "hackathon", "virtual", "nvidia", "prize", "verify-dates"],
+    "event_date": null,
+    "deadline": "2026-10-30",
+    "location": "virtual",
+    "details": { "firm": null, "role": null, "rice_connection": null, "check_size": null, "contact_path": null }
+  },
+  {
+    "kind": "grant",
+    "title": "Y Combinator Winter 2027 batch",
+    "url": "https://www.heysuccess.com/opportunity/Y-Combinator-(winter-2027-batch)-41093",
+    "source": "HeySuccess (opportunity listing)",
+    "summary": "Listing says on-time applications for YC's Winter 2027 batch close Nov 2, 2026 at 8pm PT, with decisions by Dec 11. Some trackers describe the date as projected rather than official, so confirm on ycombinator.com. Note this is equity investment plus accelerator, not a grant.",
+    "why_relevant": "Top accelerator for a founder-minded builder; the on-time window closes in three weeks.",
+    "score": 60,
+    "tags": ["yc", "accelerator", "startup", "funding", "verify-dates"],
+    "event_date": null,
+    "deadline": "2026-11-02",
+    "location": "San Francisco, CA",
+    "details": { "firm": null, "role": null, "rice_connection": null, "check_size": null, "contact_path": null }
+  },
+  {
+    "kind": "event",
+    "title": "AI Tinkerers Houston monthly builder meetup",
+    "url": "https://houston.aitinkerers.org/",
+    "source": "AI Tinkerers Houston",
+    "summary": "Curated, in-person monthly meetup of Houston AI builders built around live, unpolished technical demos (space limited to about 150). 2026 sessions ran Feb through Sept (latest Sept 8); the next date was not yet posted in search results. Presenters apply through a call for demos.",
+    "why_relevant": "The most technical AI builder community in Houston; demoing is a fast way into the local AI scene.",
+    "score": 55,
+    "tags": ["houston", "ai", "meetup", "builders", "demos", "recurring"],
+    "event_date": null,
+    "deadline": null,
+    "location": "Houston, TX",
+    "details": { "firm": null, "role": null, "rice_connection": null, "check_size": null, "contact_path": null }
+  },
+  {
+    "kind": "grant",
+    "title": "Iliad Fellowship (December 2026 cohort)",
+    "url": "https://www.lesswrong.com/posts/DSoP8zEXvqqegqixJ/announcing-iliad-s-new-2026-fellowships",
+    "source": "LessWrong",
+    "summary": "14-week, fully funded research fellowship in applied math for AI alignment, based in the SF Bay Area or London. Applications for the December 2026 cohort close Oct 19, 2026 (end of day AoE).",
+    "why_relevant": "Funded deep dive into AI alignment research; fits only if the user wants a research sabbatical rather than building.",
+    "score": 47,
+    "tags": ["ai", "fellowship", "ai-safety", "research", "funded"],
+    "event_date": null,
+    "deadline": "2026-10-19",
+    "location": "SF Bay Area or London",
+    "details": { "firm": null, "role": null, "rice_connection": null, "check_size": null, "contact_path": null }
+  }
+]

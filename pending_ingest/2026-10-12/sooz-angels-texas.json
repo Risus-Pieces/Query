@@ -1,0 +1,42 @@
+[
+  {
+    "kind": "angel",
+    "title": "Nathan Latka",
+    "url": "https://luma.com/pyu9gkwf",
+    "source": "Luma (Wake Up! CPG Austin event listing)",
+    "summary": "Featured at Austin's Wake Up! CPG meetup, whose listing calls him the most active CPG investor in Austin, says he will invest $50M in Austin CPG brands this year and names Pecan Cakes, Parker & Scott and Gordoughs Donuts; the listing links to Founderpath, which published a $40K financing for Texas Pecan Cakes. Claims are promotional and unverified; event date not confirmed.",
+    "why_relevant": "Austin capital source actively courting local CPG brands; verify terms first, since the documented deal is financing rather than equity.",
+    "score": 52,
+    "tags": ["cpg", "food", "texas", "austin", "verify"],
+    "event_date": null,
+    "deadline": null,
+    "location": "Austin, TX",
+    "details": {
+      "firm": "Founderpath (linked from the listing)",
+      "role": "Investor (per Wake Up! CPG listing)",
+      "rice_connection": null,
+      "check_size": "Founderpath example: $40K to Texas Pecan Cakes (financing)",
+      "contact_path": "Wake Up! CPG Austin meetup (hosted by Marc Nathan); Founderpath 'The Deal' CPG pages"
+    }
+  },
+  {
+    "kind": "angel",
+    "title": "Matt Brown",
+    "url": "https://www.bevnet.com/spirits/2022/profile-spirits-investor-99-proof-partners-seeks-well-crafted-stories/",
+    "source": "BevNET",
+    "summary": "Co-founder of 99 Proof Partners, a Dallas-based investment firm launched in October 2020 with Mike Solow and Tucker McCormack that organizes, manages and syndicates investments in craft spirits brands (BevNET profile, 2022).",
+    "why_relevant": "Dallas syndicate lead for beverage-alcohol brands; relevant only if Sooz has an alcohol line, otherwise a Texas beverage-investor connector.",
+    "score": 48,
+    "tags": ["beverage", "spirits", "texas", "dallas", "syndicate"],
+    "event_date": null,
+    "deadline": null,
+    "location": "Dallas, TX",
+    "details": {
+      "firm": "99 Proof Partners",
+      "role": "Co-founder",
+      "rice_connection": null,
+      "check_size": null,
+      "contact_path": "99 Proof Partners (Dallas); BevNET spirits investor profile (2022)"
+    }
+  }
+]

@@ -1,0 +1,72 @@
+[
+  {
+    "kind": "event",
+    "title": "Joni Sue Lane Lecture Series: Exploring Space, A Conversation With Astronaut Ellen Ochoa",
+    "url": "https://www.bakerinstitute.org/event/joni-sue-lane-lecture-series-exploring-space-conversation-astronaut-ellen-ochoa",
+    "source": "Rice University's Baker Institute",
+    "summary": "Free public conversation with astronaut and former NASA Johnson Space Center director Ellen Ochoa on women in science, remaining barriers, and expanding access. Monday Nov 2, 2026, 5:30-7:30 pm, James A. Baker III Hall, Rice; part of the Civic Scientist Lecture Series with Rice's Space Institute. Registration was set to open soon.",
+    "why_relevant": "Notable free leadership talk in Houston from a pioneering astronaut and former JSC leader.",
+    "score": 72,
+    "tags": ["houston", "rice", "lecture", "space", "leadership", "free"],
+    "event_date": "2026-11-02",
+    "deadline": null,
+    "location": "Baker Hall, Rice University, Houston, TX",
+    "details": { "firm": null, "role": null, "rice_connection": null, "check_size": null, "contact_path": null }
+  },
+  {
+    "kind": "leadership",
+    "title": "White House Fellows Program, Class of 2027-28",
+    "url": "https://whff.org/wp-content/uploads/2026/07/White-House-Fellows-Application-for-the-Class-of-2027-28-Part-1-Personal-Information-contains-PII.docx",
+    "source": "White House Fellows Foundation",
+    "summary": "The Foundation's posted Class of 2027-28 application form says the application goes live Nov 1, 2026. Applicants submit Parts 1 and 2 plus at least three recommendation letters (Part 3). The 2027-28 deadline was not yet posted; the prior cycle closed Apr 22, 2026.",
+    "why_relevant": "A flagship national leadership fellowship; the application opens in three weeks, so recommenders can be lined up now.",
+    "score": 58,
+    "tags": ["leadership", "fellowship", "public-service", "national"],
+    "event_date": null,
+    "deadline": null,
+    "location": "Washington, DC (national program)",
+    "details": { "firm": null, "role": null, "rice_connection": null, "check_size": null, "contact_path": null }
+  },
+  {
+    "kind": "culture",
+    "title": "Houston AfriFEST 2026 (13th annual)",
+    "url": "https://www.thecraftmap.com/fair/2026-houston-afrifest-houston-tx",
+    "source": "The Craft Map (listing)",
+    "summary": "13th annual Houston festival of African arts, culture and entertainment, listed for Nov 7, 2026 at The KBC Houston event venue on West Orem Drive.",
+    "why_relevant": "A large local cultural festival with food, music and arts, within a month.",
+    "score": 57,
+    "tags": ["houston", "festival", "african", "culture", "verify-dates"],
+    "event_date": "2026-11-07",
+    "deadline": null,
+    "location": "Houston, TX (West Orem Dr)",
+    "details": { "firm": null, "role": null, "rice_connection": null, "check_size": null, "contact_path": null }
+  },
+  {
+    "kind": "culture",
+    "title": "Islamic Arts Festival Houston 2026",
+    "url": "https://www.thecraftmap.com/fair/islamic-arts-festival-houston-tx",
+    "source": "The Craft Map (listing)",
+    "summary": "Arts festival listed for Nov 21-22, 2026 at 2323 Allen Parkway, Houston. The date comes from a craft-fair aggregator, so confirm with the organizers.",
+    "why_relevant": "A distinctive weekend cultural and arts event close to downtown Houston.",
+    "score": 50,
+    "tags": ["houston", "festival", "islamic-art", "culture", "verify-dates"],
+    "event_date": "2026-11-21",
+    "deadline": null,
+    "location": "2323 Allen Parkway, Houston, TX",
+    "details": { "firm": null, "role": null, "rice_connection": null, "check_size": null, "contact_path": null }
+  },
+  {
+    "kind": "culture",
+    "title": "Craft Community Day 2026",
+    "url": "https://crafthouston.org/event/craft-community-day-2026/",
+    "source": "Houston Center for Contemporary Craft",
+    "summary": "Free community day at the Houston Center for Contemporary Craft (4848 Main St.) showcasing local artist guilds with live demonstrations and a food truck. Saturday Nov 7, 2026, 11 am-3 pm.",
+    "why_relevant": "An easy, free Midtown arts outing near the Ion; good for meeting local makers.",
+    "score": 48,
+    "tags": ["houston", "craft", "art", "free", "community"],
+    "event_date": "2026-11-07",
+    "deadline": null,
+    "location": "Houston Center for Contemporary Craft, Houston, TX",
+    "details": { "firm": null, "role": null, "rice_connection": null, "check_size": null, "contact_path": null }
+  }
+]
