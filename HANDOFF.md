@@ -1,5 +1,13 @@
 # Handoff: broaden Query and move the routines to a session with Neon
 
+> **Status 2026-10-14: done.** Steps 1–5 completed by the desktop Code session in
+> `/Users/risus_zhao/Desktop/Apps/Query`. Staged findings and the 68-angel CSV are in Neon; the broader search, Career
+> section and purpose-based outreach shipped in production deployment `dpl_GTR6hJ2jdfiL8CkfGrtEnxYShp91` (all 31 file
+> hashes verified; schema migrated). The routines are now Claude desktop scheduled tasks (`query-research-sooz`,
+> `query-outreach-prep`, `query-digest-monday`, `query-research-personal-career`, `query-digest-thursday`) that read
+> `routines/*.md`; the three old cloud triggers below are disabled (the API cannot delete them). The rest of this file
+> is the original brief, kept for reference.
+
 Written 2026-10-14 for the next Claude Code session. Read README.md first for the architecture. This file has
 the current state, the decisions the owner has already made, and the exact work to do. Do it all without asking
 the owner questions; they have asked not to be asked for permission. Report at the end.

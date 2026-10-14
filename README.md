@@ -45,9 +45,10 @@ Scheduled tasks run while the desktop app is open; if the Mac is asleep or the a
 the task runs the next time the app opens. Each run starts a fresh session in this folder and notifies the session
 that set them up.
 
-The prompts live in `routines/*.md` (regenerate with `npm run routine-prompt -- research sooz`,
-`-- research personal,career`, `-- outreach`, `-- digest`). To change what it looks for, edit `lib/briefs.ts`,
-regenerate, and paste the new prompt into the scheduled task.
+Each scheduled task's prompt is a short wrapper (with the hard rules repeated) that reads its full instructions from
+`routines/*.md` in this folder at run time. Regenerate them with `npm run routine-prompt -- research sooz`,
+`-- research personal,career`, `-- outreach` and `-- digest`; to change what Query looks for, edit `lib/briefs.ts` and
+regenerate — the next run picks it up.
 
 ## Outreach (the Outreach tab)
 
