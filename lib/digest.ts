@@ -1,5 +1,5 @@
 import { query } from "./db";
-import type { Item, Section } from "./types";
+import { isPersonKind, type Item, type Section } from "./types";
 
 export interface DigestData {
   fresh: Record<Section, Item[]>; // newly found, not yet emailed
@@ -31,6 +31,7 @@ export async function collectDigest(minScore: number, today: string): Promise<Di
     fresh: {
       sooz: fresh.filter((i) => i.section === "sooz"),
       personal: fresh.filter((i) => i.section === "personal"),
+      career: fresh.filter((i) => i.section === "career"),
     },
     upcoming,
     generatedAt: today,
@@ -53,7 +54,7 @@ function when(i: Item): string {
   return parts.join(" · ");
 }
 
-function angelLine(i: Item): string {
+function personLine(i: Item): string {
   const d = i.details;
   const bits = [d.role, d.firm, d.rice_connection && `Rice: ${d.rice_connection}`, d.check_size]
     .filter(Boolean)
@@ -62,8 +63,8 @@ function angelLine(i: Item): string {
 }
 
 function itemHtml(i: Item): string {
-  const meta = i.kind === "angel" ? angelLine(i) : when(i);
-  const path = i.kind === "angel" && i.details.contact_path ? `<div style="color:#555">Path: ${esc(i.details.contact_path)}</div>` : "";
+  const meta = isPersonKind(i.kind) ? personLine(i) : when(i);
+  const path = isPersonKind(i.kind) && i.details.contact_path ? `<div style="color:#555">Path: ${esc(i.details.contact_path)}</div>` : "";
   const title = i.url
     ? `<a href="${esc(i.url)}" style="color:#1a56db;text-decoration:none"><b>${esc(i.title)}</b></a>`
     : `<b>${esc(i.title)}</b>`;
@@ -76,7 +77,7 @@ function itemHtml(i: Item): string {
 }
 
 function itemText(i: Item): string {
-  const meta = i.kind === "angel" ? angelLine(i) : when(i);
+  const meta = isPersonKind(i.kind) ? personLine(i) : when(i);
   return [
     `- ${i.title} [${i.kind}, fit ${i.score}]${meta ? ` — ${meta}` : ""}`,
     `  ${i.summary}`,
@@ -87,7 +88,7 @@ function itemText(i: Item): string {
 }
 
 export function digestCount(d: DigestData): number {
-  return d.fresh.sooz.length + d.fresh.personal.length;
+  return d.fresh.sooz.length + d.fresh.personal.length + d.fresh.career.length;
 }
 
 export function renderDigest(d: DigestData, dashboardUrl?: string) {
@@ -109,17 +110,19 @@ export function renderDigest(d: DigestData, dashboardUrl?: string) {
   const shown = new Set(d.upcoming.map((i) => i.id));
   const freshSooz = d.fresh.sooz.filter((i) => !shown.has(i.id));
   const freshPersonal = d.fresh.personal.filter((i) => !shown.has(i.id));
-  const soozAngels = freshSooz.filter((i) => i.kind === "angel");
-  const soozOther = freshSooz.filter((i) => i.kind !== "angel");
+  const freshCareer = d.fresh.career.filter((i) => !shown.has(i.id));
+  const soozPeople = freshSooz.filter((i) => isPersonKind(i.kind));
+  const soozOther = freshSooz.filter((i) => !isPersonKind(i.kind));
 
   const html = `<!doctype html><html><body style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:640px;margin:0 auto;padding:16px;color:#111;line-height:1.45">
   <h1 style="font-size:20px;margin:0 0 4px">Query digest</h1>
   <div style="color:#666">${esc(d.generatedAt)}${dashboardUrl ? ` · <a href="${esc(dashboardUrl)}">Open dashboard</a>` : ""}</div>
   ${n === 0 ? `<p>Nothing new this week.</p>` : ""}
   ${block("Coming up in the next 14 days", d.upcoming)}
-  ${block("Sooz — new angels", soozAngels)}
+  ${block("Sooz — new people", soozPeople)}
   ${block("Sooz — events, funding & resources", soozOther)}
   ${block("Personal", freshPersonal)}
+  ${block("Career", freshCareer)}
   </body></html>`;
 
   const text = [
@@ -127,9 +130,10 @@ export function renderDigest(d: DigestData, dashboardUrl?: string) {
     dashboardUrl ? `Dashboard: ${dashboardUrl}` : "",
     n === 0 ? "\nNothing new this week." : "",
     textBlock("Coming up in the next 14 days", d.upcoming),
-    textBlock("Sooz — new angels", soozAngels),
+    textBlock("Sooz — new people", soozPeople),
     textBlock("Sooz — events, funding & resources", soozOther),
     textBlock("Personal", freshPersonal),
+    textBlock("Career", freshCareer),
   ]
     .filter(Boolean)
     .join("\n");

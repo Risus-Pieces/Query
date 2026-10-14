@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
-import { draftFromTemplate, outreachAction, saveProspect } from "@/app/outreach/actions";
+import { draftFromTemplate, outreachAction, saveProspect, setPurposeAction } from "@/app/outreach/actions";
 import { gmailComposeUrl, linkedinSearchUrl, MAX_TOUCHES, type Pitch, type Prospect, type WarmMatch } from "@/lib/outreach";
+import { PURPOSES, type Purpose } from "@/lib/types";
 import CopyButton from "./CopyButton";
 import { ChevronIcon, LinkIcon, MailIcon, SparkleIcon, XIcon } from "./icons";
 
@@ -12,6 +13,23 @@ const STAGE_LABEL: Record<Prospect["stage"], string> = {
   meeting: "Meeting",
   passed: "Passed",
   closed: "Closed",
+};
+
+export const PURPOSE_LABEL: Record<Purpose, string> = {
+  invest: "Investor",
+  ambassador: "Ambassador / partner",
+  buyer: "Retail buyer",
+  press: "Press",
+  intro: "Intro / connector",
+};
+
+const KIND_SUBTITLE: Record<string, string> = {
+  angel: "Angel investor",
+  celebrity: "Celebrity / athlete",
+  nextgen: "Next-gen investor",
+  creator: "Creator / athlete (NIL)",
+  buyer: "Retail buyer / distributor",
+  media: "Press",
 };
 
 function Act({ id, action, label, className = "btn" }: { id: number; action: string; label: string; className?: string }) {
@@ -57,9 +75,13 @@ export default function ProspectCard({
       <div className="head">
         <div>
           <h3>{p.url ? <a href={p.url} target="_blank" rel="noopener noreferrer">{p.name}</a> : p.name}</h3>
-          <div className="sub">{[d.role, d.firm].filter(Boolean).join(" · ") || "Angel investor"}</div>
+          <div className="sub">
+            {[d.role, d.firm].filter(Boolean).join(" · ") || KIND_SUBTITLE[p.kind] || "Person"}
+            {(d.role || d.firm) && p.kind !== "angel" && KIND_SUBTITLE[p.kind] ? ` · ${KIND_SUBTITLE[p.kind]}` : ""}
+          </div>
           <div className="badges">
             <span className={`badge stage-${p.stage}`}>{due ? "Follow-up due" : STAGE_LABEL[p.stage]}</span>
+            <span className="badge purpose">{PURPOSE_LABEL[p.purpose] ?? p.purpose}</span>
             {d.rice_connection ? <span className="badge rice">Rice · {d.rice_connection}</span> : null}
             {selfMatch ? <span className="badge when">1st-degree connection</span> : null}
             {firmMatches.length ? <span className="badge when">Warm path</span> : null}
@@ -186,8 +208,22 @@ export default function ProspectCard({
         <details className="notes">
           <summary>
             <ChevronIcon size={14} />
-            Edit contact & drafts
+            Edit purpose, contact & drafts
           </summary>
+          <form action={setPurposeAction} className="edit-grid purpose-form">
+            <input type="hidden" name="id" value={p.item_id} />
+            <label>
+              <span>Purpose (sets the template)</span>
+              <select name="purpose" defaultValue={p.purpose}>
+                {PURPOSES.map((x) => (
+                  <option key={x} value={x}>
+                    {PURPOSE_LABEL[x]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button className="btn">Set purpose</button>
+          </form>
           <form action={saveProspect} className="edit-grid">
             <input type="hidden" name="id" value={p.item_id} />
             <label>

@@ -12,7 +12,7 @@ if (!/(@|\/\/)(localhost|127\.0\.0\.1)|host=\/|%2F/.test(url)) {
 const day = (n: number) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
 
 interface Seed {
-  section: "sooz" | "personal";
+  section: "sooz" | "personal" | "career";
   kind: string;
   title: string;
   summary: string;
@@ -34,6 +34,8 @@ const seeds: Seed[] = [
   { section: "sooz", kind: "event", title: "Demo Investor Pitch Night", summary: "Fictional monthly angel pitch evening (demo data).", why: "Angels attend; friendly to pre-seed.", score: 72, tags: ["pitch", "houston", "demo"], event_date: day(6), location: "Houston, TX" },
   { section: "sooz", kind: "funding", title: "Demo Food Accelerator Cohort", summary: "Fictional 12-week accelerator for CPG startups (demo data).", why: "Check + retail network for pre-seed brands.", score: 80, tags: ["accelerator", "demo"], deadline: day(30), location: "Remote" },
   { section: "sooz", kind: "resource", title: "Demo Co-Packer Directory", summary: "Fictional directory of small-batch co-manufacturers (demo data).", why: "Needed before first production run.", score: 58, tags: ["co-packer", "demo"] },
+  { section: "sooz", kind: "buyer", title: "Demo Person D", summary: "Fictional beverage category manager at a Texas grocer (demo data).", why: "Owns the shelf a first launch needs.", score: 72, tags: ["houston", "retail", "demo"], details: { firm: "Example Grocers", role: "Beverage category manager", contact_path: "Local-product open call" } },
+  { section: "career", kind: "internship", title: "Demo Co: Summer 2027 Consumer Insights Intern", summary: "Fictional summer internship open to sophomores (demo data).", why: "Consumer + data, sophomore-eligible.", score: 80, tags: ["sophomore-eligible", "consumer", "demo"], deadline: day(30), location: "Remote" },
   { section: "personal", kind: "hackathon", title: "Demo AI Builders Weekend", summary: "Fictional 48-hour AI hackathon (demo data).", why: "Squarely AI + startups.", score: 88, tags: ["ai", "hackathon", "demo"], event_date: day(12), location: "Austin, TX" },
   { section: "personal", kind: "leadership", title: "Demo Emerging Leaders Fellowship", summary: "Fictional six-month cohort program (demo data).", why: "Leadership development with a founder track.", score: 74, tags: ["fellowship", "demo"], deadline: day(25), location: "Hybrid" },
   { section: "personal", kind: "culture", title: "Demo Lunar New Year Night Market", summary: "Fictional cultural festival with food vendors (demo data).", why: "Cultural + food, very much your thing.", score: 63, tags: ["festival", "demo"], event_date: day(40), location: "Houston, TX" },

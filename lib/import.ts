@@ -1,12 +1,15 @@
 import { query } from "./db";
 import { dedupeKey } from "./dedupe";
 import { persistCandidates, todayISO, validateCandidates, type RawFindingT } from "./ingest";
-import { addToPipeline, parseCsv } from "./outreach";
+import { addToPipeline, parseCsv, setPurpose } from "./outreach";
+import { PERSON_KINDS, isPersonKind, isPurpose, type Purpose } from "./types";
 
 /**
- * Import angels from a CSV (e.g. the research report's prospect list, or an Apollo export).
- * Columns (case-insensitive, any order): name, firm, role, rice_connection, check_size, contact_path,
- * summary, why_relevant, url (public source), location, tags (";"-separated), score, linkedin_url, email.
+ * Import people from a CSV (e.g. the research report's prospect list, or an Apollo export).
+ * Columns (case-insensitive, any order): name, kind (angel | celebrity | nextgen | creator | buyer | media;
+ * default angel), purpose (invest | ambassador | buyer | press | intro; default from kind), firm, role,
+ * rice_connection, check_size, contact_path, summary, why_relevant, url (public source), location,
+ * tags (";"-separated), score, linkedin_url, email.
  * Rows go through the same validation as research findings; a source URL is required.
  */
 
@@ -23,9 +26,16 @@ const ALIASES: Record<string, string> = {
   "email address": "email",
   evidence: "summary",
   fit: "score",
+  type: "kind",
 };
 
-export function parseProspectCsv(text: string): { rows: RawFindingT[]; extras: { linkedin_url: string | null; email: string | null }[] } {
+export interface ProspectExtra {
+  linkedin_url: string | null;
+  email: string | null;
+  purpose: Purpose | null;
+}
+
+export function parseProspectCsv(text: string): { rows: RawFindingT[]; extras: ProspectExtra[] } {
   const table = parseCsv(text);
   if (table.length < 2) return { rows: [], extras: [] };
   const head = table[0].map((h) => {
@@ -37,11 +47,14 @@ export function parseProspectCsv(text: string): { rows: RawFindingT[]; extras: {
     return i >= 0 ? (r[i] ?? "").trim() : "";
   };
   const rows: RawFindingT[] = [];
-  const extras: { linkedin_url: string | null; email: string | null }[] = [];
+  const extras: ProspectExtra[] = [];
   for (const r of table.slice(1)) {
     const score = Number(get(r, "score"));
+    // A blank kind means angel; anything else is kept as written so validation can reject it.
+    const kind = get(r, "kind").toLowerCase() || "angel";
+    const purpose = get(r, "purpose").toLowerCase();
     rows.push({
-      kind: "angel",
+      kind,
       title: get(r, "name"),
       url: get(r, "url") || null,
       source: null,
@@ -60,7 +73,11 @@ export function parseProspectCsv(text: string): { rows: RawFindingT[]; extras: {
         contact_path: get(r, "contact_path") || null,
       },
     });
-    extras.push({ linkedin_url: get(r, "linkedin_url") || null, email: get(r, "email") || null });
+    extras.push({
+      linkedin_url: get(r, "linkedin_url") || null,
+      email: get(r, "email") || null,
+      purpose: isPurpose(purpose) ? purpose : null,
+    });
   }
   return { rows, extras };
 }
@@ -75,19 +92,20 @@ export interface ImportResult {
 
 export async function importProspects(text: string, today = todayISO()): Promise<ImportResult> {
   const { rows, extras } = parseProspectCsv(text);
-  const task = { id: "import", section: "sooz" as const, kinds: ["angel"], upcomingOnly: false };
+  const task = { id: "import", section: "sooz" as const, kinds: PERSON_KINDS, upcomingOnly: false };
   const candidates = validateCandidates(rows, task, today);
   const res = await persistCandidates(task, candidates);
 
   let queued = 0;
   for (const c of candidates) {
-    const key = dedupeKey({ section: "sooz", kind: "angel", title: c.title, url: c.url, firm: c.details.firm });
+    const key = dedupeKey({ section: "sooz", kind: c.kind, title: c.title, url: c.url, firm: c.details.firm });
     const item = (await query<{ id: number }>(`select id from items where dedupe_key = $1`, [key]))[0];
-    if (!item) continue;
+    if (!item || !isPersonKind(c.kind)) continue;
     if (await addToPipeline(item.id)) queued++;
-    // Carry contact fields through, but never overwrite what's already there.
-    const idx = rows.findIndex((r) => r.title.trim() === c.title);
+    // Carry contact fields and purpose through, but never overwrite contact info that's already there.
+    const idx = rows.findIndex((r) => r.title.trim() === c.title && r.kind.trim().toLowerCase() === c.kind);
     const extra = idx >= 0 ? extras[idx] : undefined;
+    if (extra?.purpose) await setPurpose(item.id, extra.purpose);
     const email = extra?.email && /^[a-z0-9._%+'-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(extra.email) ? extra.email.toLowerCase() : null;
     const li = extra?.linkedin_url && /^https:\/\/([a-z]{2,3}\.)?linkedin\.com\/in\/[^/?#\s]+\/?$/i.test(extra.linkedin_url) ? extra.linkedin_url : null;
     if (email || li) {

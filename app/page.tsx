@@ -22,13 +22,22 @@ export const dynamic = "force-dynamic";
 const SECTION_META: Record<Section, { label: string; tagline: string }> = {
   sooz: {
     label: "Sooz",
-    tagline: "Angels, events and funding for a pre-seed food & beverage brand — Rice alumni first.",
+    tagline: "Angels, brand partners, buyers, press, events and funding for a pre-seed food & beverage brand — Rice alumni first.",
   },
   personal: {
     label: "Personal",
-    tagline: "AI & startup builds, leadership, culture — and anything else worth your time.",
+    tagline: "AI & startup builds, Houston events, talks, free passes, leadership, culture — and anything else worth your time.",
+  },
+  career: {
+    label: "Career",
+    tagline: "Internships, externships, programs and fellowships in consumer, retail, bio, VC, PE, AI and hardware — sophomore-friendly first.",
   },
 };
+
+// Kinds where "soonest first" is the natural order.
+const DATED_KINDS = new Set(["event", "hackathon", "sampling", "talk", "pass", "speaking", "program", "internship", "externship"]);
+const KIND_LABEL: Record<string, string> = { nextgen: "Next-gen", media: "Press" };
+const kindLabel = (k: string) => KIND_LABEL[k] ?? k[0].toUpperCase() + k.slice(1);
 
 type SP = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -47,10 +56,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<SP>
   const kind = KINDS[section].includes(one(sp.kind) ?? "") ? one(sp.kind) : undefined;
   const q = one(sp.q)?.trim().slice(0, 100) || undefined;
   const rice = one(sp.rice) === "1";
-  const defaultSort: Sort = kind === "event" || kind === "hackathon" ? "date" : "score";
+  const defaultSort: Sort = kind && DATED_KINDS.has(kind) ? "date" : "score";
   const sort = (SORTS as readonly string[]).includes(one(sp.sort) ?? "") ? (one(sp.sort) as Sort) : defaultSort;
 
-  const [items, counts, kinds, fresh, runs, soozNew, personalNew, outreachActions, stages] = await Promise.all([
+  const [items, counts, kinds, fresh, runs, soozNew, personalNew, careerNew, outreachActions, stages] = await Promise.all([
     listItems({ section, view, kind, q, rice, sort }),
     viewCounts(section),
     kindCounts(section, view),
@@ -58,10 +67,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<SP>
     recentRuns(),
     newCount("sooz"),
     newCount("personal"),
+    newCount("career"),
     outreachActionCount(),
     outreachStages(),
   ]);
-  const newBySection: Record<Section, number> = { sooz: soozNew, personal: personalNew };
 
   const base = { section, view: view === "inbox" ? undefined : view, kind, q, rice: rice ? "1" : undefined, sort: sort === defaultSort ? undefined : sort };
   const lastRun = runs.find((r) => r.finished_at && !r.error);
@@ -71,7 +80,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<SP>
       <Header
         active={section}
         subtitle={SECTION_META[section].tagline}
-        badges={{ sooz: soozNew, personal: personalNew, outreach: outreachActions }}
+        badges={{ sooz: soozNew, personal: personalNew, career: careerNew, outreach: outreachActions }}
       />
 
       <form className="search" action="/" method="get">
@@ -84,7 +93,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<SP>
           <input type="search" name="q" defaultValue={q} placeholder="Search names, firms, topics" aria-label="Search" />
         </label>
         {section === "sooz" ? (
-          <a className="btn" href="/api/export?section=sooz" title="Download angels as CSV">
+          <a className="btn" href="/api/export?section=sooz" title="Download people (angels, partners, buyers, press) as CSV">
             <DownloadIcon size={15} />
             CSV
           </a>
@@ -112,7 +121,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<SP>
           if (!n && k !== kind) return null;
           return (
             <Link key={k} className="chip" aria-current={k === kind ? "true" : undefined} href={href(base, { kind: k })}>
-              <span style={{ textTransform: "capitalize" }}>{k}</span> <span className="count">{n}</span>
+              <span>{kindLabel(k)}</span> <span className="count">{n}</span>
             </Link>
           );
         })}

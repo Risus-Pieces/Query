@@ -282,6 +282,8 @@ details.notes textarea:focus { box-shadow: 0 0 0 2px var(--blue); }
 
 /* Prospect card */
 .prospect .sub { margin-top: 2px; font-size: 14px; color: var(--label-2); }
+.badge.purpose { background: rgba(191, 90, 242, 0.18); color: #d48cff; }
+.purpose-form { grid-template-columns: 1fr auto; align-items: end; }
 .badge.stage-prospect { background: var(--fill-4); color: var(--label-2); }
 .badge.stage-drafted { background: rgba(10, 132, 255, 0.18); color: var(--blue); }
 .badge.stage-sent { background: rgba(94, 92, 230, 0.22); color: #a5a3ff; }
@@ -297,11 +299,11 @@ details.notes textarea:focus { box-shadow: 0 0 0 2px var(--blue); }
 .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 .edit-grid .wide { grid-column: 1 / -1; }
 .edit-grid label, .row-field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--label-2); }
-.edit-grid input, .edit-grid textarea, .row-field input, .row-field textarea {
+.edit-grid input, .edit-grid textarea, .edit-grid select, .row-field input, .row-field textarea {
   width: 100%; padding: 10px 12px; border: 0; border-radius: 10px; background: var(--bg-3); color: var(--label);
   font-size: 15px; outline: 0; resize: vertical;
 }
-.edit-grid input:focus, .edit-grid textarea:focus, .row-field input:focus, .row-field textarea:focus { box-shadow: 0 0 0 2px var(--blue); }
+.edit-grid input:focus, .edit-grid textarea:focus, .edit-grid select:focus, .row-field input:focus, .row-field textarea:focus { box-shadow: 0 0 0 2px var(--blue); }
 .row-field input[type="file"] { padding: 9px 10px; font-size: 14px; color: var(--label-2); }
 
 /* Settings form groups */

@@ -26,12 +26,13 @@ function Section({ title, hint, items, render }: { title: string; hint?: string;
 export default async function OutreachPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const today = new Date().toISOString().slice(0, 10);
-  const [rows, pitch, netSize, soozNew, personalNew] = await Promise.all([
+  const [rows, pitch, netSize, soozNew, personalNew, careerNew] = await Promise.all([
     listProspects(),
     getPitch(),
     networkSize(),
     newCount("sooz"),
     newCount("personal"),
+    newCount("career"),
   ]);
   const b = bucket(rows, today);
   const warm = await warmMatches(rows.filter((r) => r.stage !== "closed" && r.stage !== "passed").map((r) => r.item_id));
@@ -44,8 +45,8 @@ export default async function OutreachPage({ searchParams }: { searchParams: Pro
     <div className="wrap">
       <Header
         active="outreach"
-        subtitle="Specific angels, drafted one-to-one, sent by you. Follow-ups and replies are tracked for you."
-        badges={{ sooz: soozNew, personal: personalNew, outreach: actions }}
+        subtitle="Investors, brand partners, buyers and press: drafted one-to-one, sent by you. Follow-ups and replies are tracked for you."
+        badges={{ sooz: soozNew, personal: personalNew, career: careerNew, outreach: actions }}
       />
 
       <div className="tiles">
@@ -63,7 +64,7 @@ export default async function OutreachPage({ searchParams }: { searchParams: Pro
       ) : null}
       {netSize === 0 ? (
         <p className="banner">
-          Import your LinkedIn connections in <Link href="/settings">Settings</Link> to see who can introduce you to each angel.
+          Import your LinkedIn connections in <Link href="/settings">Settings</Link> to see who can introduce you to each person.
         </p>
       ) : null}
 
@@ -71,7 +72,7 @@ export default async function OutreachPage({ searchParams }: { searchParams: Pro
         <div className="empty">
           <TrayIcon />
           <span>
-            No one in the pipeline yet. Add angels from the <Link href="/?section=sooz&kind=angel">Sooz list</Link>, or import a CSV in{" "}
+            No one in the pipeline yet. Add people from the <Link href="/?section=sooz">Sooz list</Link>, or import a CSV in{" "}
             <Link href="/settings">Settings</Link>.
           </span>
         </div>
@@ -92,6 +93,8 @@ export default async function OutreachPage({ searchParams }: { searchParams: Pro
       <p className="fineprint">
         Send one-to-one from your own inbox and keep the first note relationship-first. Contacting people you don&apos;t already know about an
         investment can count as general solicitation under SEC Reg D — confirm your 506(b)/506(c) approach with counsel before a broad push.
+        Never offer equity in a first note to a celebrity or creator (that is a securities offer). Paid ambassadors and creators must disclose the
+        relationship under the FTC&apos;s endorsement rules, and NIL deals with college athletes must follow their school&apos;s NIL rules.
       </p>
     </div>
   );

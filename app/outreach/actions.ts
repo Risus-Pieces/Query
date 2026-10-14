@@ -12,6 +12,7 @@ import {
   parseLinkedInConnections,
   saveEdits,
   savePitch,
+  setPurpose,
   templateDrafts,
   transition,
   type Pitch,
@@ -54,6 +55,15 @@ export async function saveProspect(f: FormData) {
   refresh();
   if (!r.ok) redirect(`/outreach?err=${encodeURIComponent(r.error ?? "Could not save")}&id=${id}#p-${id}`);
   redirect(`/outreach?saved=${id}#p-${id}`);
+}
+
+export async function setPurposeAction(f: FormData) {
+  const id = idOf(f);
+  const purpose = str(f, "purpose");
+  if (!id || !purpose) return;
+  await setPurpose(id, purpose);
+  refresh();
+  redirect(`/outreach#p-${id}`);
 }
 
 const ACTIONS = ["mark_sent", "followup_sent", "replied", "meeting", "passed", "close", "reopen"] as const;

@@ -39,6 +39,15 @@ describe.skipIf(!hasDb)("SQL ingest/digest (postgres)", () => {
       { section: "personal", kind: "event", title: "Hack", url: "https://www.x.com/e/?utm_source=a" },
       { section: "personal", kind: "other", title: "No url", url: null, event_date: "2026-12-01" },
       { section: "sooz", kind: "event", title: "No url or date" },
+      { section: "sooz", kind: "angel", title: "Ann Top", firm: "The Angel Group; Supernatural Ventures" },
+      { section: "sooz", kind: "celebrity", title: "Sam Star", url: "https://a.com/x", firm: "Houston Texans" },
+      { section: "sooz", kind: "nextgen", title: "Ann Heir", firm: "Heir Family Office; Heir Ventures" },
+      { section: "sooz", kind: "creator", title: "Cree Ator", firm: " ; Other" },
+      { section: "sooz", kind: "buyer", title: "Bea Buyer", firm: "H-E-B | Central Market" },
+      { section: "sooz", kind: "media", title: "Pat Writer", firm: null },
+      { section: "personal", kind: "celebrity", title: "Not a person outside sooz", url: "https://x.com/p" },
+      { section: "career", kind: "internship", title: "Acme: Intern", url: "https://acme.com/jobs/1?utm_source=x" },
+      { section: "career", kind: "fellowship", title: "No url fellowship", event_date: "2027-01-15" },
     ];
     it.each(keys)("builds the same dedupe key for %o", async (k) => {
       const v = (await one<{ v: string }>(`select oq_dedupe_key($1,$2,$3,$4,$5::date,$6) as v`, [
@@ -107,6 +116,26 @@ describe.skipIf(!hasDb)("SQL ingest/digest (postgres)", () => {
       expect((await one<any>(`select count(*)::int n from items`)).n).toBe(1);
     });
 
+    it("accepts the career section and new person kinds", async () => {
+      const c = await ingest("career", ["internship", "job"], true, [
+        f({ kind: "internship", title: "Acme: Summer 2027 Intern", url: "https://acme.com/jobs/1", event_date: null, deadline: "2099-01-01" }),
+        f({ kind: "internship", title: "Closed", url: "https://acme.com/jobs/2", event_date: null, deadline: "2020-01-01" }),
+      ]);
+      expect(c).toMatchObject({ valid: 1, inserted: 1 });
+      const p = await ingest("sooz", ["celebrity"], false, [
+        { kind: "celebrity", title: "Sam Star", url: "https://a.com/s", score: 80, tags: [], summary: "", why_relevant: "",
+          details: { firm: "Houston Texans; Star Drinks", role: "Linebacker", contact_path: "Agency roster" } },
+        { kind: "celebrity", title: "Sam Star", url: "https://b.com/s", score: 82, tags: [], summary: "", why_relevant: "",
+          details: { firm: "Houston Texans", role: "Linebacker" } },
+      ]);
+      expect(p).toMatchObject({ inserted: 1, updated: 1 });
+      const rows = await query<any>(`select section, kind, dedupe_key from items order by id`);
+      expect(rows).toEqual([
+        { section: "career", kind: "internship", dedupe_key: "career:url:acme.com/jobs/1" },
+        { section: "sooz", kind: "celebrity", dedupe_key: "celebrity:sam-star:houston-texans" },
+      ]);
+    });
+
     it("rejects malformed calls atomically", async () => {
       await expect(ingest("nope", ["event"], false, [f()])).rejects.toThrow(/section/);
       await expect(ingest("sooz", ["event"], false, { not: "array" })).rejects.toThrow(/array/);
@@ -135,13 +164,32 @@ describe.skipIf(!hasDb)("SQL ingest/digest (postgres)", () => {
       const d = await digest();
       expect(d.count).toBe(3);
       expect(d.subject).toMatch(/^Query digest: 3 new finds \(\d{4}-\d{2}-\d{2}\)$/);
-      expect(d.html).toContain("Sooz — new angels (1)");
+      expect(d.html).toContain("Sooz — new people (1)");
       expect(d.html).toContain("Sooz — events, funding &amp; resources (1)");
       expect(d.html).toContain("Personal (1)");
       expect(d.html).toContain("Rice: MBA &#39;09");
       expect(d.html).toContain("Path: Rice Alliance");
       expect(d.html).toContain("Open dashboard");
       expect(d.ids).toHaveLength(3);
+    });
+
+    it("groups every person kind under new people and adds a Career section", async () => {
+      await ins("Sam Star", { kind: "celebrity", details: { firm: "Houston Texans", role: "Linebacker", contact_path: "Agency roster" } });
+      await ins("Bea Buyer", { kind: "buyer", details: { firm: "H-E-B" } });
+      await ins("expo");
+      await ins("Acme: Intern", { section: "career", kind: "internship", deadline: "2099-01-01" });
+      await ins("Hack", { section: "personal", kind: "hackathon" });
+      const d = await digest();
+      expect(d.count).toBe(5);
+      expect(d.html).toContain("Sooz — new people (2)");
+      expect(d.html).toContain("Sooz — events, funding &amp; resources (1)");
+      expect(d.html).toContain("Linebacker · Houston Texans");
+      expect(d.html).toContain("Path: Agency roster");
+      expect(d.html).toContain("Personal (1)");
+      expect(d.html).toContain("Career (1)");
+      expect(d.text).toContain("SOOZ — NEW PEOPLE (2)");
+      expect(d.text).toContain("CAREER (1)\n- Acme: Intern [internship, fit 70] — apply by 2099-01-01");
+      expect(d.html.indexOf("Personal (1)")).toBeLessThan(d.html.indexOf("Career (1)"));
     });
 
     it("lists the next 14 days once, and does not repeat after marking digested", async () => {

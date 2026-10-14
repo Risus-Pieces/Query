@@ -3,7 +3,7 @@ import Link from "next/link";
 import { saveNotes, updateStatus } from "@/app/actions";
 import { addToOutreach } from "@/app/outreach/actions";
 import type { Stage } from "@/lib/outreach";
-import type { Item, Status } from "@/lib/types";
+import { isPersonKind, type Item, type Status } from "@/lib/types";
 import { CheckCircleIcon, ChevronIcon, PersonPlusIcon, StarIcon, UndoIcon, XIcon } from "./icons";
 
 function StatusButton({
@@ -57,9 +57,10 @@ function ringColor(score: number): string {
 
 export default function ItemCard({ item, outreachStage = null }: { item: Item; outreachStage?: Stage | null }) {
   const d = item.details ?? {};
-  const isAngel = item.kind === "angel";
+  const isPerson = isPersonKind(item.kind);
+  const canOutreach = isPerson && item.section === "sooz";
   const facts: [string, string][] = [];
-  if (isAngel) {
+  if (isPerson) {
     if (d.role || d.firm) facts.push(["Who", [d.role, d.firm].filter(Boolean).join(" · ")]);
     if (d.rice_connection) facts.push(["Rice", d.rice_connection]);
     if (d.check_size) facts.push(["Check size", d.check_size]);
@@ -84,7 +85,7 @@ export default function ItemCard({ item, outreachStage = null }: { item: Item; o
             )}
           </h3>
           <div className="badges">
-            <span className="badge kind">{item.kind}</span>
+            <span className="badge kind">{item.kind === "nextgen" ? "next-gen" : item.kind === "media" ? "press" : item.kind}</span>
             {item.tags.includes("rice") ? <span className="badge rice">Rice</span> : null}
             {item.event_date ? <span className="badge when">{fmtDate(item.event_date)}</span> : null}
             {item.deadline ? <span className="badge deadline">Apply by {fmtDate(item.deadline)}</span> : null}
@@ -127,7 +128,7 @@ export default function ItemCard({ item, outreachStage = null }: { item: Item; o
           icon={<StarIcon filled={item.status === "saved"} />}
           label={item.status === "saved" ? "Saved" : "Save"}
         />
-        {isAngel ? (
+        {isPerson ? (
           <StatusButton
             id={item.id}
             status="contacted"
@@ -137,7 +138,7 @@ export default function ItemCard({ item, outreachStage = null }: { item: Item; o
             label={item.status === "contacted" ? "Contacted" : "Mark contacted"}
           />
         ) : null}
-        {isAngel && item.status !== "dismissed" ? (
+        {canOutreach && item.status !== "dismissed" ? (
           outreachStage ? (
             <Link className="btn done" data-on="true" href={`/outreach#p-${item.id}`}>
               <PersonPlusIcon size={15} />

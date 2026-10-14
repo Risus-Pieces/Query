@@ -1,13 +1,20 @@
 # Query — opportunity radar
 
-A private dashboard + weekly email that keeps looking for things worth your attention, in two sections:
+A private dashboard + twice-weekly email that keeps looking for things worth your attention, in three sections:
 
-- **Sooz** (pre-seed food & beverage CPG): angel investors (Rice alumni first), CPG / fundraising / general
-  events, accelerators, grants and other resources.
-- **Personal**: AI & startup hackathons, leadership programs, cultural opportunities, and a "wildcard"
-  search for anything interesting.
-- **Outreach**: a pipeline for specific, named angels: contact enrichment, one-to-one drafts, warm-intro
-  matching against your LinkedIn connections, follow-up reminders and reply tracking. You send every message.
+- **Sooz** (pre-seed food & beverage CPG): people and places. People: angel investors (Rice alumni first),
+  celebrities and pro athletes (as investors *and* ambassadors), next-gen investors from prominent families,
+  creators and college athletes with NIL deals, retail buyers and distributors, and press / podcast hosts.
+  Places: CPG and fundraising events, sampling and vendor slots, accelerators, grants, awards and resources.
+- **Personal**: AI & startup hackathons, Houston events from Luma / Eventbrite / Meetup and campus calendars,
+  talks by people visiting Houston, free conference passes, speaking and op-ed calls, student perks and
+  credits, leadership programs, culture, and a "wildcard" search.
+- **Career** (Rice class of 2029, so sophomore-eligible first): internships, externships and job simulations,
+  early-insight / sophomore / diversity programs, VC fellowships and scout programs, and scholarships, across
+  consumer, retail, bio, VC, PE, AI and hardware.
+- **Outreach**: a pipeline for specific, named people, each with a purpose (invest, ambassador, buyer, press or
+  intro): contact enrichment, one-to-one drafts for that purpose, warm-intro matching against your LinkedIn
+  connections, follow-up reminders and reply tracking. You send every message.
 
 ```
 Claude routines (weekly, on your Claude plan — no API key)        Neon Postgres          Vercel
@@ -16,39 +23,59 @@ Claude routines (weekly, on your Claude plan — no API key)        Neon Postgre
  └─ digest:    oq_digest_email() → Gmail → oq_mark_digested() ──────────▲
 ```
 
-Findings are de-duplicated (people by name + firm, everything else by canonical URL). Your triage
+Findings are de-duplicated (people by kind + name + firm, everything else by canonical URL). Your triage
 (`saved`, `contacted`, `dismissed`, notes) is never overwritten by later runs, and the agent is told what it
 already found so each run hunts for *new* things.
 
-## How the weekly job runs (no API key)
+## How the jobs run (no API key)
 
-Three scheduled Claude routines run **on your Claude plan** inside a session that holds your Neon, Gmail and
-Apollo connectors:
+Five scheduled tasks run **on your Claude plan** in the Claude desktop app on the owner's Mac (Code tab →
+scheduled tasks, working folder = this repo), where the Neon, Gmail, Apollo and web-search tools are connected.
+Research is split across two days to spread plan usage:
 
-| Routine | When | Does |
+| Task | When (Central) | Does |
 |---|---|---|
-| Opportunity radar weekly research | Mondays ~8:00 Central | 9 research tasks (briefs in `lib/briefs.ts`; angel tasks return individual people) → `oq_ingest()` into Neon |
-| Opportunity radar weekly outreach prep | Mondays ~9:15 Central | queues angels scoring 75+, finds public LinkedIn URLs, up to 5 Apollo work-email lookups, drafts email + LinkedIn note + intro request + 2 follow-ups, and checks Gmail for sent mail and replies |
-| Opportunity radar weekly digest | Mondays ~10:30 Central | `oq_digest_email()` → one email to you via Gmail (new finds + outreach to-dos) → `oq_mark_digested()` |
+| Query: Sooz research | Mon 7:59 | every `sooz-*` task in `lib/briefs.ts` (people tasks return one person per item) → `oq_ingest()`; up to 4 search-only subagents in parallel |
+| Query: outreach prep | Mon 9:13 | queues people scoring 75+ with a purpose, finds public LinkedIn URLs and published business contacts, up to 5 Apollo work-email lookups (angels, buyers, press only), drafts email + LinkedIn note + intro request + 2 follow-ups for each person's purpose, and checks Gmail for sent mail and replies |
+| Query: digest (Monday) | Mon 10:27 | `oq_digest_email()` → one email to you via Gmail (new finds + outreach to-dos) → `oq_mark_digested()` |
+| Query: Personal & Career research | Thu 7:59 | every `personal-*` and `career-*` task → `oq_ingest()` |
+| Query: digest (Thursday) | Thu 10:27 | same digest; it only includes items not yet emailed |
 
-The prompts live in `routines/*.md` (regenerate with `npm run routine-prompt -- research|outreach|digest`). To change
-what it looks for, edit `lib/briefs.ts`, regenerate, and update the routine's prompt.
+Scheduled tasks run while the desktop app is open; if the Mac is asleep or the app is closed at the scheduled time,
+the task runs the next time the app opens. Each run starts a fresh session in this folder and notifies the session
+that set them up.
+
+The prompts live in `routines/*.md` (regenerate with `npm run routine-prompt -- research sooz`,
+`-- research personal,career`, `-- outreach`, `-- digest`). To change what it looks for, edit `lib/briefs.ts`,
+regenerate, and paste the new prompt into the scheduled task.
 
 ## Outreach (the Outreach tab)
 
 1. **Settings → Pitch facts.** Company, one-liner, sender name/title and (optionally) traction, raise, deck and
-   calendar links. Drafts use only these facts plus each angel's sourced background; leave anything unverified blank.
+   calendar links. Drafts use only these facts plus each person's sourced background; leave anything unverified blank.
 2. **Settings → Your network.** Upload LinkedIn's `Connections.csv` (Settings & Privacy → Data privacy → Get a copy
-   of your data → Connections). Each angel card then shows who you already know at their firm.
-3. **Settings → Import angels.** A CSV of named people (e.g. `reports/angels_prospects.csv`); rows are validated
-   like research findings and added to the pipeline. Angels from the Sooz list can also be added with one click.
-4. **Weekly.** The outreach routine enriches and drafts; you review on the Outreach tab, press *Open in Gmail*,
+   of your data → Connections). Each card then shows who you already know at that person's firm.
+3. **Settings → Import people.** A CSV of named people (e.g. `reports/angels_prospects.csv`) with optional `kind`
+   (angel, celebrity, nextgen, creator, buyer, media; default angel) and `purpose` columns; rows are validated like
+   research findings and added to the pipeline. Anyone in the Sooz people lists can also be added with one click.
+4. **Purpose.** Each card has a purpose that picks the draft: *invest* (angels, next-gen: 20 minutes of perspective),
+   *ambassador* (celebrities, creators, athletes: send product, talk collaboration — never equity in a first note),
+   *buyer* (15 minutes or a sample drop), *press* (a story angle, samples or an interview) and *intro* (ask a
+   connector). Change it under *Edit purpose, contact & drafts*.
+5. **Weekly.** The outreach routine enriches and drafts; you review on the Outreach tab, press *Open in Gmail*,
    send from your own inbox and *Mark sent*. Follow-ups come due on day 5 and day 12 (3 touches max); the routine
    also notices sends and replies in Gmail and moves cards along.
 
+Contact rules: people at companies (angels, buyers, press) get a verified work email via Apollo (≤5 lookups per run);
+celebrities, creators and next-gen investors only get a business or management contact they or their team publish
+(`email_source = public`), otherwise the route (agency, manager, NIL office) goes in *warm path*. Never personal
+emails, phone numbers, addresses or DMs; adults only.
+
 Nothing is ever sent automatically. First notes are relationship-first (asking for perspective, not pitching
 terms) because contacting people you don't know about an offering can be general solicitation under SEC
-Regulation D — confirm your 506(b)/506(c) approach with counsel before a broad push.
+Regulation D — confirm your 506(b)/506(c) approach with counsel before a broad push. Paid ambassadors and creators
+must disclose the relationship (FTC endorsement rules), and NIL deals with college athletes must follow their
+school's NIL rules.
 
 **Safety design.** The routines can only call a fixed set of SQL functions (all validation, length caps and
 de-duplication live in `db/schema.sql`), the research routine is told never to email, the digest is rendered
@@ -61,7 +88,8 @@ each routine into its own claude.ai Routine with only the connector it needs (re
 1. **Database (Neon).** Create a Neon database and a restricted role; copy the pooled connection string.
 2. **Dashboard (Vercel).** Env vars: `DATABASE_URL`, `DASHBOARD_PASSWORD`, `SESSION_SECRET` (`openssl rand -hex 32`).
 3. **Migrate:** `DATABASE_URL=... npm run db:migrate` (creates tables + the `oq_*` functions).
-4. **Routines:** create the three routines from `routines/research.md`, `routines/outreach.md` and `routines/digest.md`.
+4. **Routines:** create the five scheduled tasks above from `routines/research-sooz.md`,
+   `routines/research-personal-career.md`, `routines/outreach.md` and `routines/digest.md` (twice).
 
 ## Local development
 
@@ -72,6 +100,7 @@ npm run db:migrate
 npm run db:seed-demo        # fictional rows, refuses to run against a non-local database
 npm run dev                 # dashboard on :3000
 npm test                    # set TEST_DATABASE_URL to include the Postgres tests
+                            # (Linux cloud sandbox: eval "$(bash scripts/local-pg.sh)" first)
 ```
 
 An optional API-key path exists for running research from a script instead of a routine
@@ -81,9 +110,8 @@ An optional API-key path exists for running research from a script instead of a 
 
 - **Public information only.** The agent is instructed to use public professional sources and never to guess
   emails/phones. Rice's alumni tools (alumni directory, Sallyportal, Ask an Owl) are login-gated and not scraped; use them by hand for warm intros.
-- **Search-only research.** WebFetch is blocked by the cloud environment's network allowlist unless you widen
-  *Network access* in the environment settings, so research relies on search results. Dates found only on
-  aggregator sites are tagged `verify-dates` — confirm at the source before acting.
+- **Search-first research.** The routines rely mainly on search results (WebFetch is used when it works). Dates
+  found only on aggregator sites are tagged `verify-dates` — confirm at the source before acting.
 - **Verify before you reach out.** Findings carry a source link; confirm details (check sizes, dates) there.
 - The dashboard is a single-user password gate (signed cookie, 30 days). Rotating `SESSION_SECRET` signs everyone out.
 
@@ -97,4 +125,6 @@ An optional API-key path exists for running research from a script instead of a 
   Vercel-managed org can only be created from the Vercel dashboard, so this reuses an existing project; to move to a
   dedicated one later, create it in Vercel → Storage → Neon, run `npm run db:migrate`, and swap `DATABASE_URL`.
 - **Vercel env vars (sensitive):** `DATABASE_URL`, `DASHBOARD_PASSWORD`, `SESSION_SECRET`.
-- **Routines:** see `mcp__claude-code-remote` triggers "Opportunity radar weekly research / outreach prep / digest".
+- **Routines:** Claude desktop scheduled tasks `query-research-sooz`, `query-outreach-prep`, `query-digest-monday`,
+  `query-research-personal-career`, `query-digest-thursday` (prompts in `routines/`). The older cloud routines
+  ("Opportunity radar weekly …") are disabled; they could not see the Neon connector.

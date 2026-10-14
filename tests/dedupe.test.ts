@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dedupeKey, normalizeUrl, slug } from "@/lib/dedupe";
+import { dedupeKey, firstFirm, normalizeUrl, slug } from "@/lib/dedupe";
 
 describe("normalizeUrl", () => {
   it("drops tracking params, hash, www and trailing slash", () => {
@@ -36,6 +36,32 @@ describe("dedupeKey", () => {
     expect(dedupeKey({ section: "sooz", kind: "event", title: "t", url: u })).not.toBe(
       dedupeKey({ section: "personal", kind: "event", title: "t", url: u }),
     );
+  });
+  it("identifies every person kind by name, with a kind prefix", () => {
+    const a = dedupeKey({ section: "sooz", kind: "celebrity", title: "Sam Star", url: "https://a.com/1", firm: "Houston Texans" });
+    const b = dedupeKey({ section: "sooz", kind: "celebrity", title: "sam  star", url: "https://b.com/2", firm: "houston texans" });
+    expect(a).toBe(b);
+    expect(a).toBe("celebrity:sam-star:houston-texans");
+    expect(dedupeKey({ section: "sooz", kind: "media", title: "Pat Writer", firm: null })).toBe("media:pat-writer");
+    expect(dedupeKey({ section: "sooz", kind: "buyer", title: "Pat Writer", firm: "H-E-B" })).not.toBe(
+      dedupeKey({ section: "sooz", kind: "media", title: "Pat Writer", firm: "H-E-B" }),
+    );
+  });
+  it("keys non-angel people on their first firm, angels on the whole firm field (existing keys stay put)", () => {
+    expect(dedupeKey({ section: "sooz", kind: "nextgen", title: "Ann Heir", firm: "Heir Family Office; Heir Ventures" })).toBe(
+      "nextgen:ann-heir:heir-family-office",
+    );
+    expect(dedupeKey({ section: "sooz", kind: "creator", title: "Ann", firm: " ; Other" })).toBe("creator:ann");
+    expect(dedupeKey({ section: "sooz", kind: "angel", title: "Jane Doe", firm: "The Angel Group; Supernatural Ventures" })).toBe(
+      "angel:jane-doe:the-angel-group-supernatural-ventures",
+    );
+  });
+  it("keys career items by URL like other non-people", () => {
+    expect(dedupeKey({ section: "career", kind: "internship", title: "Acme: Intern", url: "https://acme.com/jobs/1?utm_source=x" })).toBe(
+      "career:url:acme.com/jobs/1",
+    );
+    expect(firstFirm("A | B")).toBe("A");
+    expect(firstFirm(null)).toBeNull();
   });
   it("slug strips accents and punctuation", () => {
     expect(slug("José  O'Neil!")).toBe("jose-o-neil");

@@ -3,7 +3,7 @@ export const SCHEMA_SQL = String.raw`-- Idempotent schema. Run with npm run db:m
 
 create table if not exists items (
   id            bigserial primary key,
-  section       text not null check (section in ('sooz', 'personal')),
+  section       text not null check (section in ('sooz', 'personal', 'career')),
   kind          text not null,
   title         text not null,
   url           text,
@@ -26,6 +26,10 @@ create table if not exists items (
   digested_at   timestamptz
 );
 
+-- Widen the section check on databases created before the Career section existed.
+alter table items drop constraint if exists items_section_check;
+alter table items add constraint items_section_check check (section in ('sooz', 'personal', 'career'));
+
 create index if not exists items_section_status_idx on items (section, status);
 create index if not exists items_event_date_idx on items (event_date);
 create index if not exists items_score_idx on items (score desc);
@@ -44,7 +48,8 @@ create table if not exists runs (
 create index if not exists runs_started_idx on runs (started_at desc);
 
 -- ---------------------------------------------------------------------------------------------
--- Outreach pipeline (angels). One row per angel item in the pipeline. Sending is always done by a
+-- Outreach pipeline (any person: angels, celebrities, next-gen investors, creators, buyers, press).
+-- One row per person item in the pipeline. Sending is always done by a
 -- human (Gmail compose / LinkedIn); the routine only enriches, drafts, and detects replies.
 -- ---------------------------------------------------------------------------------------------
 
@@ -56,6 +61,8 @@ create table if not exists settings (
 
 create table if not exists outreach (
   item_id          bigint primary key references items(id) on delete cascade,
+  purpose          text not null default 'invest'
+                     constraint outreach_purpose_check check (purpose in ('invest', 'ambassador', 'buyer', 'press', 'intro')),
   stage            text not null default 'prospect'
                      check (stage in ('prospect', 'drafted', 'sent', 'replied', 'meeting', 'passed', 'closed')),
   email            text,
@@ -139,12 +146,26 @@ exception when others then
   return null;
 end $$;
 
+-- People kinds (mirrors PERSON_KINDS in lib/types.ts) and the default outreach purpose for each.
+create or replace function oq_is_person(p_kind text) returns boolean language sql immutable as $$
+  select p_kind in ('angel', 'celebrity', 'nextgen', 'creator', 'buyer', 'media')
+$$;
+
+create or replace function oq_default_purpose(p_kind text) returns text language sql immutable as $$
+  select case p_kind when 'celebrity' then 'ambassador' when 'creator' then 'ambassador'
+                     when 'buyer' then 'buyer' when 'media' then 'press' else 'invest' end
+$$;
+
 create or replace function oq_dedupe_key(p_section text, p_kind text, p_title text, p_url text, p_date date, p_firm text)
 returns text language plpgsql stable as $$
-declare norm text := oq_norm_url(p_url);
+declare norm text := oq_norm_url(p_url); firm text;
 begin
   if p_section = 'sooz' and p_kind = 'angel' then
     return 'angel:' || oq_slug(p_title) || case when coalesce(p_firm, '') <> '' then ':' || oq_slug(p_firm) else '' end;
+  elsif p_section = 'sooz' and oq_is_person(p_kind) then
+    -- Other person kinds key on the first firm listed ("A; B" -> A).
+    firm := oq_slug((regexp_split_to_array(coalesce(p_firm, ''), '[;|]'))[1]);
+    return p_kind || ':' || oq_slug(p_title) || case when firm <> '' then ':' || firm else '' end;
   elsif norm is not null then
     return p_section || ':url:' || norm;
   end if;
@@ -160,7 +181,7 @@ declare
   v_tags text[]; v_details jsonb; v_key text; v_ins boolean; v_run bigint;
   n_valid int := 0; n_ins int := 0; n_upd int := 0; rejected jsonb := '[]'::jsonb;
 begin
-  if p_section not in ('sooz', 'personal') then raise exception 'section must be sooz or personal'; end if;
+  if p_section not in ('sooz', 'personal', 'career') then raise exception 'section must be sooz, personal or career'; end if;
   if p_findings is null or jsonb_typeof(p_findings) <> 'array' then raise exception 'findings must be a JSON array'; end if;
   insert into runs (task_id, section) values (p_task, p_section) returning id into v_run;
 
@@ -231,7 +252,7 @@ create or replace function oq_esc(t text) returns text language sql immutable as
 $$;
 
 create or replace function oq_item_meta(i items) returns text language sql immutable as $$
-  select case when i.kind = 'angel'
+  select case when oq_is_person(i.kind)
     then concat_ws(' · ', nullif(i.details->>'role', ''), nullif(i.details->>'firm', ''),
                    case when coalesce(i.details->>'rice_connection', '') <> '' then 'Rice: ' || (i.details->>'rice_connection') end,
                    nullif(i.details->>'check_size', ''))
@@ -246,9 +267,9 @@ declare
   today date := current_date;
   fresh items[]; upcoming items[]; i items;
   shown bigint[]; ids bigint[] := '{}';
-  h_up text := ''; h_ang text := ''; h_oth text := ''; h_per text := '';
-  t_up text := ''; t_ang text := ''; t_oth text := ''; t_per text := '';
-  n_up int := 0; n_ang int := 0; n_oth int := 0; n_per int := 0; n_fresh int := 0;
+  h_up text := ''; h_ang text := ''; h_oth text := ''; h_per text := ''; h_car text := '';
+  t_up text := ''; t_ang text := ''; t_oth text := ''; t_per text := ''; t_car text := '';
+  n_up int := 0; n_ang int := 0; n_oth int := 0; n_per int := 0; n_car int := 0; n_fresh int := 0;
   li text; tx text; subj text; html text; txt text;
   o_drafts int := 0; o_due int := 0; o_replies int := 0; o_html text := ''; o_txt text := '';
 begin
@@ -271,10 +292,11 @@ begin
     continue when i.id = any (shown);
     li := format('<li style="margin:0 0 14px"><a href="%s" style="color:#1a56db;text-decoration:none"><b>%s</b></a> <span style="color:#888;font-size:12px">· %s · fit %s</span><div style="color:#555">%s</div><div>%s</div><div style="color:#555"><i>%s</i></div>%s</li>',
       oq_esc(i.url), oq_esc(i.title), oq_esc(i.kind), i.score, oq_esc(oq_item_meta(i)), oq_esc(i.summary), oq_esc(i.why_relevant),
-      case when i.kind = 'angel' and coalesce(i.details->>'contact_path', '') <> '' then '<div style="color:#555">Path: ' || oq_esc(i.details->>'contact_path') || '</div>' else '' end);
+      case when oq_is_person(i.kind) and coalesce(i.details->>'contact_path', '') <> '' then '<div style="color:#555">Path: ' || oq_esc(i.details->>'contact_path') || '</div>' else '' end);
     tx := format('- %s [%s, fit %s] — %s%s%s', i.title, i.kind, i.score, oq_item_meta(i), E'\n  ' || i.summary, E'\n  ' || i.url);
     if i.section = 'personal' then h_per := h_per || li; t_per := t_per || tx || E'\n'; n_per := n_per + 1;
-    elsif i.kind = 'angel' then h_ang := h_ang || li; t_ang := t_ang || tx || E'\n'; n_ang := n_ang + 1;
+    elsif i.section = 'career' then h_car := h_car || li; t_car := t_car || tx || E'\n'; n_car := n_car + 1;
+    elsif oq_is_person(i.kind) then h_ang := h_ang || li; t_ang := t_ang || tx || E'\n'; n_ang := n_ang + 1;
     else h_oth := h_oth || li; t_oth := t_oth || tx || E'\n'; n_oth := n_oth + 1; end if;
   end loop;
 
@@ -302,17 +324,19 @@ begin
     || '<h1 style="font-size:20px;margin:0 0 4px">Query digest</h1><div style="color:#666">' || today
     || case when p_dashboard_url is not null then ' · <a href="' || oq_esc(p_dashboard_url) || '">Open dashboard</a>' else '' end || '</div>'
     || case when n_up > 0 then '<h2 style="font-size:16px;margin:24px 0 8px">Coming up in the next 14 days (' || n_up || ')</h2><ul style="padding-left:18px;margin:0">' || h_up || '</ul>' else '' end
-    || case when n_ang > 0 then '<h2 style="font-size:16px;margin:24px 0 8px">Sooz — new angels (' || n_ang || ')</h2><ul style="padding-left:18px;margin:0">' || h_ang || '</ul>' else '' end
+    || case when n_ang > 0 then '<h2 style="font-size:16px;margin:24px 0 8px">Sooz — new people (' || n_ang || ')</h2><ul style="padding-left:18px;margin:0">' || h_ang || '</ul>' else '' end
     || case when n_oth > 0 then '<h2 style="font-size:16px;margin:24px 0 8px">Sooz — events, funding &amp; resources (' || n_oth || ')</h2><ul style="padding-left:18px;margin:0">' || h_oth || '</ul>' else '' end
     || case when n_per > 0 then '<h2 style="font-size:16px;margin:24px 0 8px">Personal (' || n_per || ')</h2><ul style="padding-left:18px;margin:0">' || h_per || '</ul>' else '' end
+    || case when n_car > 0 then '<h2 style="font-size:16px;margin:24px 0 8px">Career (' || n_car || ')</h2><ul style="padding-left:18px;margin:0">' || h_car || '</ul>' else '' end
     || o_html
     || '</body></html>';
   txt := 'QUERY DIGEST — ' || today || E'\n'
     || case when p_dashboard_url is not null then 'Dashboard: ' || p_dashboard_url || E'\n' else '' end
     || case when n_up > 0 then E'\nCOMING UP IN THE NEXT 14 DAYS (' || n_up || E')\n' || t_up else '' end
-    || case when n_ang > 0 then E'\nSOOZ — NEW ANGELS (' || n_ang || E')\n' || t_ang else '' end
+    || case when n_ang > 0 then E'\nSOOZ — NEW PEOPLE (' || n_ang || E')\n' || t_ang else '' end
     || case when n_oth > 0 then E'\nSOOZ — EVENTS, FUNDING & RESOURCES (' || n_oth || E')\n' || t_oth else '' end
     || case when n_per > 0 then E'\nPERSONAL (' || n_per || E')\n' || t_per else '' end
+    || case when n_car > 0 then E'\nCAREER (' || n_car || E')\n' || t_car else '' end
     || o_txt;
 
   return jsonb_build_object('count', n_fresh, 'upcoming', n_up, 'subject', subj, 'html', html, 'text', txt, 'ids', to_jsonb(ids),
@@ -328,12 +352,23 @@ $$;
 -- Outreach functions used by the routines (they may only call these, never raw DML).
 -- ---------------------------------------------------------------------------------------------
 
--- Put high-fit, non-dismissed angels into the pipeline. Returns how many were added.
+-- Add outreach.purpose to databases created before it existed, backfilled from each person's kind.
+do $$
+begin
+  if not exists (select 1 from information_schema.columns
+                  where table_schema = current_schema() and table_name = 'outreach' and column_name = 'purpose') then
+    alter table outreach add column purpose text not null default 'invest'
+      constraint outreach_purpose_check check (purpose in ('invest', 'ambassador', 'buyer', 'press', 'intro'));
+    update outreach o set purpose = oq_default_purpose(i.kind) from items i where i.id = o.item_id;
+  end if;
+end $$;
+
+-- Put high-fit, non-dismissed people (any person kind) into the pipeline. Returns how many were added.
 create or replace function oq_outreach_queue(p_min_score int default 70) returns int language sql as $$
   with ins as (
-    insert into outreach (item_id)
-    select i.id from items i
-     where i.section = 'sooz' and i.kind = 'angel' and i.score >= p_min_score
+    insert into outreach (item_id, purpose)
+    select i.id, oq_default_purpose(i.kind) from items i
+     where i.section = 'sooz' and oq_is_person(i.kind) and i.score >= p_min_score
        and i.status not in ('dismissed')
        and not exists (select 1 from outreach o where o.item_id = i.id)
     on conflict do nothing
@@ -365,7 +400,7 @@ create or replace function oq_outreach_todo(p_limit int default 10) returns json
     'pitch', coalesce((select jsonb_object_agg(key, value) from settings where key like 'pitch.%'), '{}'::jsonb),
     'prospects', coalesce((
       select jsonb_agg(jsonb_build_object(
-               'item_id', i.id, 'name', i.title, 'url', i.url, 'summary', i.summary, 'why_relevant', i.why_relevant,
+               'item_id', i.id, 'kind', i.kind, 'purpose', o.purpose, 'name', i.title, 'url', i.url, 'summary', i.summary, 'why_relevant', i.why_relevant,
                'score', i.score, 'tags', i.tags, 'details', i.details, 'location', i.location,
                'email', o.email, 'linkedin_url', o.linkedin_url, 'warm_path', o.warm_path,
                'network_matches', (

@@ -17,12 +17,14 @@ import {
   parseLinkedInConnections,
   saveEdits,
   savePitch,
+  setPurpose,
   templateDrafts,
   transition,
   warmMatches,
   type Prospect,
 } from "@/lib/outreach";
 import { SCHEMA_SQL } from "@/lib/schema-sql";
+import { PERSON_KINDS, defaultPurpose } from "@/lib/types";
 import { hasDb, resetDb } from "./helpers";
 
 const pitch = {
@@ -71,6 +73,47 @@ describe("templateDrafts", () => {
   });
 });
 
+describe("templateDrafts by purpose", () => {
+  const raisePitch = { ...pitch, "pitch.raise": "$500k pre-seed SAFE", "pitch.deck_url": "https://deck.example" };
+  it("defaults the purpose from the kind", () => {
+    expect(PERSON_KINDS.map((k) => [k, defaultPurpose(k)])).toEqual([
+      ["angel", "invest"], ["celebrity", "ambassador"], ["nextgen", "invest"], ["creator", "ambassador"], ["buyer", "buyer"], ["media", "press"],
+    ]);
+    const d = templateDrafts(angel({ kind: "celebrity" }), pitch);
+    expect(d.subject).toBe("Can we send you some Sooz Beverage?");
+  });
+  it("ambassador notes offer product, never equity, terms, the raise or the deck", () => {
+    const d = templateDrafts(angel({ kind: "creator", purpose: "ambassador" }), raisePitch);
+    expect(d.body).toContain("send you some to try, no strings attached");
+    for (const text of [d.body, d.linkedin_note, d.followup_1, d.followup_2]) {
+      expect(text).not.toMatch(/equity|shares|stake|advis[eo]r|SAFE|pre-seed|raise|invest|\$|deck\.example/i);
+    }
+  });
+  it("buyer notes ask for 15 minutes or a sample drop at the buyer's first firm", () => {
+    const d = templateDrafts(angel({ kind: "buyer", purpose: "buyer", details: { firm: "H-E-B; Central Market", role: "Category manager" } }), raisePitch);
+    expect(d.subject).toBe("Sooz Beverage for H-E-B: 15 minutes?");
+    expect(d.body).toContain("15 minutes");
+    expect(d.body).toMatch(/samples/);
+    expect(d.body).not.toMatch(/pre-seed|raise/i);
+  });
+  it("press notes pitch a story angle from pitch facts only", () => {
+    const d = templateDrafts(angel({ kind: "media", purpose: "press", details: { firm: "Houston Chronicle", role: "Food writer" } }), {
+      ...pitch, "pitch.rice_affiliation": "Rice '29",
+    });
+    expect(d.subject).toBe("Story idea: a Rice student founder building Sooz Beverage");
+    expect(d.body).toContain("a Rice student (Rice '29)");
+    expect(d.body).toContain("send samples or do a short interview");
+    const noRice = templateDrafts(angel({ kind: "media", purpose: "press" }), pitch);
+    expect(noRice.body).not.toContain("Rice");
+  });
+  it("intro notes ask for a pointer; invest keeps the raise wording", () => {
+    expect(templateDrafts(angel({ purpose: "intro" }), raisePitch).body).toContain("comfortable introducing me to");
+    const inv = templateDrafts(angel({ kind: "nextgen" }), raisePitch);
+    expect(inv.body).toContain("ahead of our $500k pre-seed SAFE");
+    expect(inv.body).toContain("https://deck.example");
+  });
+});
+
 describe("helpers", () => {
   it("builds a Gmail compose link without sending anything", () => {
     const u = new URL(gmailComposeUrl({ to: "a@b.co", subject: "Hi & bye", body: "Line 1\nLine 2", from: "me@x.co" }));
@@ -104,6 +147,11 @@ describe("helpers", () => {
     expect(companyKey("The Acme Co.")).toBe("acme");
     expect(companyKey("")).toBeNull();
   });
+  it("reads optional kind and purpose columns", () => {
+    const { rows, extras } = parseProspectCsv("name,kind,purpose,url\nA,Celebrity,ambassador,https://a.com\nB,,,https://b.com\nC,buyer,bogus,https://c.com\n");
+    expect(rows.map((r) => r.kind)).toEqual(["celebrity", "angel", "buyer"]);
+    expect(extras.map((e) => e.purpose)).toEqual(["ambassador", null, null]);
+  });
   it("maps prospect CSV columns and aliases", () => {
     const { rows, extras } = parseProspectCsv("Full Name,Company,Title,Source URL,Fit,LinkedIn\nJane Doe,Acme,Partner,https://a.com/j,82,https://www.linkedin.com/in/jane\n");
     expect(rows[0]).toMatchObject({ kind: "angel", title: "Jane Doe", url: "https://a.com/j", score: 82, details: { firm: "Acme", role: "Partner" } });
@@ -135,13 +183,30 @@ describe.skipIf(!hasDb)("outreach pipeline (postgres)", () => {
        JSON.stringify({ firm: o.firm ?? "Acme Ventures", role: "Partner", ...(o.rice ? { rice_connection: o.rice } : {}) })],
     ).then((r) => r[0].id);
 
-  it("only angels enter the pipeline, idempotently", async () => {
+  it("only people enter the pipeline, idempotently, with a purpose from their kind", async () => {
     const a = await insertItem("Jane Doe");
+    const c = await insertItem("Sam Star", { kind: "celebrity" });
+    const m = await insertItem("Pat Writer", { kind: "media" });
     const e = await insertItem("Some Expo", { kind: "event" });
     expect(await addToPipeline(a)).toBe(true);
     expect(await addToPipeline(a)).toBe(true);
+    expect(await addToPipeline(c)).toBe(true);
+    expect(await addToPipeline(m)).toBe(true);
     expect(await addToPipeline(e)).toBe(false);
-    expect((await query(`select 1 from outreach`)).length).toBe(1);
+    expect((await query(`select 1 from outreach`)).length).toBe(3);
+    expect((await listProspects()).map((p) => [p.name, p.kind, p.purpose]).sort()).toEqual([
+      ["Jane Doe", "angel", "invest"], ["Pat Writer", "media", "press"], ["Sam Star", "celebrity", "ambassador"],
+    ]);
+  });
+
+  it("changes purpose only to a valid value, and logs it", async () => {
+    const c = await insertItem("Sam Star", { kind: "celebrity" });
+    await addToPipeline(c);
+    expect(await setPurpose(c, "invest")).toBe(true);
+    expect(await setPurpose(c, "bribe")).toBe(false);
+    expect((await getProspect(c))!.purpose).toBe("invest");
+    const ev = await query<{ kind: string; detail: string }>(`select kind, detail from outreach_events where item_id = $1 order by id`, [c]);
+    expect(ev.at(-1)).toEqual({ kind: "purpose", detail: "invest" });
   });
 
   it("validates edits and moves to drafted when a body is written", async () => {
@@ -204,6 +269,22 @@ describe.skipIf(!hasDb)("outreach pipeline (postgres)", () => {
     expect(m.get(a)?.map((x) => x.full_name)).toEqual(["Sam Lee"]);
   });
 
+  it("imports people of any kind with their purpose, and rejects unknown kinds", async () => {
+    const csv = [
+      "name,kind,purpose,firm,role,summary,url,score",
+      "Sam Star,celebrity,,Houston Texans,Linebacker,Backed a sports drink,https://a.com/sam,80",
+      "Bea Buyer,buyer,intro,H-E-B,Category manager,Runs the beverage set,https://a.com/bea,75",
+      "Who Knows,wizard,,X,Y,z,https://a.com/who,90",
+    ].join("\n");
+    const r = await importProspects(csv, "2026-10-08");
+    expect(r).toMatchObject({ received: 3, valid: 2, inserted: 2, queued: 2 });
+    const rows = (await listProspects()).map((p) => [p.name, p.kind, p.purpose]).sort();
+    expect(rows).toEqual([["Bea Buyer", "buyer", "intro"], ["Sam Star", "celebrity", "ambassador"]]);
+    expect((await query<any>(`select dedupe_key from items order by id`)).map((x) => x.dedupe_key)).toEqual([
+      "celebrity:sam-star:houston-texans", "buyer:bea-buyer:h-e-b",
+    ]);
+  });
+
   it("imports a prospect CSV through research validation and queues it", async () => {
     const csv = [
       "name,firm,role,rice_connection,summary,url,score,email,linkedin_url",
@@ -234,6 +315,24 @@ describe.skipIf(!hasDb)("outreach pipeline (postgres)", () => {
       expect(todo.pitch["pitch.company"]).toBe("Sooz Beverage");
       expect(todo.prospects).toHaveLength(1);
       expect(todo.prospects[0]).toMatchObject({ name: "Jane Doe", network_matches: [{ name: "Sam Lee" }] });
+    });
+
+    it("queues every person kind with its default purpose, and the todo carries kind and purpose", async () => {
+      await insertItem("Ann Angel", { score: 90, firm: "Fund A" });
+      await insertItem("Sam Star", { kind: "celebrity", score: 88, firm: "Houston Texans" });
+      await insertItem("Nia Heir", { kind: "nextgen", score: 86, firm: "Heir Office" });
+      await insertItem("Cree Ator", { kind: "creator", score: 84, firm: "Cree Media" });
+      await insertItem("Bea Buyer", { kind: "buyer", score: 82, firm: "H-E-B" });
+      await insertItem("Pat Writer", { kind: "media", score: 80, firm: "Houston Chronicle" });
+      await insertItem("Expo", { kind: "sampling", score: 95, firm: "Expo Co" });
+      await query(`insert into items (section, kind, title, url, score, details, dedupe_key)
+                   values ('career', 'internship', 'Intern', 'https://x.com/i', 99, '{}', 'career-intern')`);
+      expect((await one(`select oq_outreach_queue(70) as n`)).n).toBe(6);
+      const todo = (await one(`select oq_outreach_todo(10) as t`)).t;
+      expect(todo.prospects.map((p: any) => [p.name, p.kind, p.purpose])).toEqual([
+        ["Ann Angel", "angel", "invest"], ["Sam Star", "celebrity", "ambassador"], ["Nia Heir", "nextgen", "invest"],
+        ["Cree Ator", "creator", "ambassador"], ["Bea Buyer", "buyer", "buyer"], ["Pat Writer", "media", "press"],
+      ]);
     });
 
     it("hands out one person per firm, and skips firms with a live thread", async () => {
@@ -294,6 +393,21 @@ describe.skipIf(!hasDb)("outreach pipeline (postgres)", () => {
       expect(d.html).toContain("1 draft to review");
       expect(d.html).toContain('href="https://dash.example/outreach"');
     });
+  });
+
+  it("adds outreach.purpose to an older database and backfills it from each person's kind", async () => {
+    const a = await insertItem("Jane Doe");
+    const c = await insertItem("Sam Star", { kind: "celebrity" });
+    const b = await insertItem("Bea Buyer", { kind: "buyer" });
+    await query(`alter table outreach drop column purpose`);
+    await query(`insert into outreach (item_id) values ($1), ($2), ($3)`, [a, c, b]);
+    await query(readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8"));
+    const rows = await query<any>(`select i.title, o.purpose from outreach o join items i on i.id = o.item_id order by i.id`);
+    expect(rows).toEqual([{ title: "Jane Doe", purpose: "invest" }, { title: "Sam Star", purpose: "ambassador" }, { title: "Bea Buyer", purpose: "buyer" }]);
+    await query(`update outreach set purpose = 'intro' where item_id = $1`, [c]);
+    await query(readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8")); // re-running never re-backfills
+    expect((await getProspect(c))!.purpose).toBe("intro");
+    await expect(query(`update outreach set purpose = 'bribe' where item_id = $1`, [a])).rejects.toThrow(/purpose_check/);
   });
 
   it("migrates idempotently and records the schema hash", async () => {

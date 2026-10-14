@@ -1,9 +1,10 @@
 import { query } from "./db";
 import { slug } from "./dedupe";
-import type { ItemDetails } from "./types";
+import { PERSON_KINDS, defaultPurpose, isPurpose, type ItemDetails, type Purpose } from "./types";
 
 /**
- * Angel outreach pipeline.
+ * Outreach pipeline for people: angels and next-gen investors (invest), celebrities and creators
+ * (ambassador), retail buyers (buyer), press (press), and connectors (intro).
  *
  * Stages: prospect → drafted → sent → replied → meeting, or passed / closed.
  * Sending is always done by a person (Gmail compose link, LinkedIn). The weekly routine only
@@ -18,6 +19,8 @@ export const MAX_TOUCHES = 3;
 
 export interface Prospect {
   item_id: number;
+  kind: string;
+  purpose: Purpose;
   name: string;
   url: string | null;
   summary: string;
@@ -87,7 +90,7 @@ export function missingPitch(p: Pitch): string[] {
 
 // Queries
 
-const PROSPECT_COLS = `i.id as item_id, i.title as name, i.url, i.summary, i.why_relevant, i.score, i.tags, i.details, i.location,
+const PROSPECT_COLS = `i.id as item_id, i.kind, o.purpose, i.title as name, i.url, i.summary, i.why_relevant, i.score, i.tags, i.details, i.location,
   o.stage, o.email, o.email_source, o.linkedin_url, o.warm_path, o.subject, o.body, o.linkedin_note, o.intro_request,
   o.followup_1, o.followup_2, o.drafted_by, o.sent_at, o.next_followup_at, o.touches, o.replied_at, o.updated_at`;
 
@@ -135,17 +138,25 @@ async function logEvent(itemId: number, kind: string, detail = ""): Promise<void
   await query(`insert into outreach_events (item_id, kind, detail) values ($1, $2, $3)`, [itemId, kind, detail.slice(0, 500)]);
 }
 
-/** Put one angel into the pipeline (idempotent). Returns false if the item isn't an angel. */
+/** Put one person into the pipeline (idempotent). Returns false if the item isn't a person. */
 export async function addToPipeline(itemId: number): Promise<boolean> {
   const rows = await query<{ id: number }>(
-    `insert into outreach (item_id)
-     select id from items where id = $1 and kind = 'angel'
+    `insert into outreach (item_id, purpose)
+     select id, oq_default_purpose(kind) from items where id = $1 and section = 'sooz' and kind = any($2::text[])
      on conflict (item_id) do nothing returning item_id as id`,
-    [itemId],
+    [itemId, [...PERSON_KINDS]],
   );
   if (rows.length) await logEvent(itemId, "added");
   const exists = await query(`select 1 from outreach where item_id = $1`, [itemId]);
   return exists.length > 0;
+}
+
+/** Change why we're reaching out (drives which template drafts are written). */
+export async function setPurpose(itemId: number, purpose: string): Promise<boolean> {
+  if (!isPurpose(purpose)) return false;
+  const rows = await query(`update outreach set purpose = $2, updated_at = now() where item_id = $1 returning 1`, [itemId, purpose]);
+  if (rows.length) await logEvent(itemId, "purpose", purpose);
+  return rows.length > 0;
 }
 
 const EMAIL_RE = /^[a-z0-9._%+'-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
@@ -260,12 +271,21 @@ export async function outreachStages(): Promise<Map<number, Stage>> {
 
 const firstName = (full: string) => full.trim().split(/\s+/)[0] ?? full;
 
-/** A short, factual hook from the angel's public evidence. Never invents anything. */
-function hook(p: Pick<Prospect, "details" | "why_relevant">): string {
+type DraftInput = Pick<Prospect, "name" | "details" | "why_relevant" | "warm_path"> & Partial<Pick<Prospect, "kind" | "purpose">>;
+
+/** A short, factual hook from the person's public evidence. Never invents anything. */
+function hook(p: DraftInput, purpose: Purpose): string {
   const d = p.details ?? {};
+  const fallback: Record<Purpose, string> = {
+    invest: "I came across your work backing early-stage consumer brands",
+    ambassador: "I've been following your work with consumer brands",
+    buyer: "I came across your work in the beverage category",
+    press: "I've been reading your coverage of food and beverage brands",
+    intro: "I came across your work in the consumer and food & beverage community",
+  };
   if (d.role && d.firm) return `I came across your work as ${d.role} at ${d.firm}`;
   if (d.firm) return `I came across your work with ${d.firm}`;
-  return "I came across your work backing early-stage consumer brands";
+  return fallback[purpose];
 }
 
 export interface Drafts {
@@ -277,7 +297,43 @@ export interface Drafts {
   followup_2: string;
 }
 
-export function templateDrafts(p: Pick<Prospect, "name" | "details" | "why_relevant" | "warm_path">, pitch: Pitch): Drafts {
+/** What each purpose asks for, in a first note and in follow-ups. None of these ever offers equity or terms. */
+const ASKS: Record<Purpose, { ask: string; note: string; nudge: string; intro: string }> = {
+  invest: {
+    ask: "I'd value 20 minutes of your perspective on building in the category — and, if it's interesting, I'm happy to share more about what we're doing.",
+    note: "I'd love to connect and learn from your perspective on the category.",
+    nudge: "Would a 20-minute call in the next couple of weeks work?",
+    intro: "I'd value their perspective on the category.",
+  },
+  ambassador: {
+    ask: "We'd love to send you some to try, no strings attached. If you like it, I'd welcome a quick conversation about a collaboration that fits how you already work with brands.",
+    note: "We'd love to send you some to try, no strings attached.",
+    nudge: "Happy to ship some over to try — just tell me where (or your team's preferred address).",
+    intro: "I'd love to send them product and explore a collaboration.",
+  },
+  buyer: {
+    ask: "Could I have 15 minutes to hear what's working in your beverage set, or drop off samples for your team to try?",
+    note: "I'd love 15 minutes to learn what's working in your set, or to drop off samples.",
+    nudge: "Would 15 minutes, or a sample drop-off for your team, work in the next couple of weeks?",
+    intro: "I'd love 15 minutes to learn what's working in their category.",
+  },
+  press: {
+    ask: "If it's a fit for something you're working on, I'm happy to send samples or do a short interview.",
+    note: "Happy to send samples or do a short interview if it's ever a fit.",
+    nudge: "Happy to send samples or hop on a quick call if the story is useful.",
+    intro: "I think there may be a story there for them.",
+  },
+  intro: {
+    ask: "Is there anyone in your network who works with early-stage beverage brands you'd be comfortable introducing me to? I'd be grateful for any pointer.",
+    note: "I'd love to connect and learn who you'd suggest I talk to.",
+    nudge: "If anyone comes to mind, I'd be grateful for a pointer — and if not, no worries at all.",
+    intro: "I'd value their advice on who to talk to.",
+  },
+};
+
+export function templateDrafts(p: DraftInput, pitch: Pitch): Drafts {
+  const purpose: Purpose = p.purpose && isPurpose(p.purpose) ? p.purpose : defaultPurpose(p.kind ?? "angel");
+  const A = ASKS[purpose];
   const fn = firstName(p.name);
   const company = pitch["pitch.company"]?.trim() || "[Company]";
   const oneLiner = pitch["pitch.one_liner"]?.trim() || "[one-line description]";
@@ -291,21 +347,37 @@ export function templateDrafts(p: Pick<Prospect, "name" | "details" | "why_relev
   const myRice = pitch["pitch.rice_affiliation"]?.trim();
   const theirRice = p.details?.rice_connection?.trim();
   const bothOwls = Boolean(myRice && theirRice);
+  const tagline = oneLiner.split(/[.,;—-]/)[0].trim().slice(0, 60);
 
-  const subject = bothOwls ? `Fellow Owl building ${company}` : `${company}: ${oneLiner.split(/[.,;—-]/)[0].trim().slice(0, 60)}`;
+  const subject = bothOwls
+    ? `Fellow Owl building ${company}`
+    : purpose === "ambassador"
+      ? `Can we send you some ${company}?`
+      : purpose === "buyer"
+        ? `${company} for ${p.details?.firm?.split(/[;|]/)[0].trim() || "your shelves"}: 15 minutes?`
+        : purpose === "press"
+          ? `Story idea: ${myRice ? "a Rice student founder building " : ""}${company}`
+          : purpose === "intro"
+            ? `Quick ask from a ${company} founder`
+            : `${company}: ${tagline}`;
+
+  // Only investors hear about a raise, and only as "starting conversations" (never terms).
+  const ask = purpose === "invest" && raise
+    ? `We're starting conversations ahead of our ${raise}. I'd value 20 minutes of your perspective on the category — and, if it's a fit, I'm happy to share more.`
+    : A.ask;
+  const pressAngle = purpose === "press" && myRice ? `\nThe angle: a Rice student (${myRice}) building a beverage brand from campus.` : "";
 
   const lines = [
     `Hi ${fn},`,
     "",
-    `${hook(p)}${bothOwls ? ` — and as a fellow Rice alum (${myRice}), I wanted to reach out directly` : ""}.`,
+    `${hook(p, purpose)}${bothOwls ? ` — and as a fellow Rice alum (${myRice}), I wanted to reach out directly` : ""}.`,
     "",
     `I'm ${sender}${title ? `, ${title}` : ""} of ${company}. ${oneLiner}`,
     traction ? `\n${traction}` : "",
+    pressAngle,
     "",
-    raise
-      ? `We're starting conversations ahead of our ${raise}. I'd value 20 minutes of your perspective on the category — and, if it's a fit, I'm happy to share more.`
-      : `I'd value 20 minutes of your perspective on building in the category — and, if it's interesting, I'm happy to share more about what we're doing.`,
-    deck ? `\nA short overview is here: ${deck}` : "",
+    ask,
+    deck && purpose === "invest" ? `\nA short overview is here: ${deck}` : "",
     cal ? `If easier, here's my calendar: ${cal}` : "",
     "",
     "Best,",
@@ -316,8 +388,8 @@ export function templateDrafts(p: Pick<Prospect, "name" | "details" | "why_relev
 
   const note = (
     bothOwls
-      ? `Hi ${fn} — fellow Owl (${myRice}) here. I'm building ${company}: ${oneLiner} Would love to connect and learn from your perspective.`
-      : `Hi ${fn} — I'm building ${company}: ${oneLiner} I'd love to connect and learn from your perspective on the category.`
+      ? `Hi ${fn} — fellow Owl (${myRice}) here. I'm building ${company}: ${oneLiner} ${A.note}`
+      : `Hi ${fn} — I'm building ${company}: ${oneLiner} ${A.note}`
   ).slice(0, 300);
 
   const intro = p.warm_path?.trim()
@@ -325,10 +397,10 @@ export function templateDrafts(p: Pick<Prospect, "name" | "details" | "why_relev
         `Hi [mutual],`,
         "",
         `Hope you're well! I'm building ${company} — ${oneLiner}`,
-        `Would you be comfortable introducing me to ${p.name}${p.details?.firm ? ` (${p.details.firm})` : ""}? I'd value their perspective on the category.`,
+        `Would you be comfortable introducing me to ${p.name}${p.details?.firm ? ` (${p.details.firm})` : ""}? ${A.intro}`,
         "",
         "Here's a short blurb you can forward:",
-        `"${sender} is building ${company}. ${oneLiner}${traction ? ` ${traction}` : ""} They'd love 20 minutes of ${fn}'s perspective."`,
+        `"${sender} is building ${company}. ${oneLiner}${traction ? ` ${traction}` : ""} They'd love to connect with ${fn}."`,
         "",
         "Totally fine if not — thank you either way!",
         sender,
@@ -338,7 +410,7 @@ export function templateDrafts(p: Pick<Prospect, "name" | "details" | "why_relev
   const followup_1 = [
     `Hi ${fn},`,
     "",
-    `Quick follow-up on my note about ${company}.${traction ? ` Since then: ${traction}` : ""} Would a 20-minute call in the next couple of weeks work?`,
+    `Quick follow-up on my note about ${company}.${traction ? ` Since then: ${traction}` : ""} ${A.nudge}`,
     "",
     sender,
   ].join("\n");

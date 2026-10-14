@@ -1,4 +1,4 @@
-import { exportAngels } from "@/lib/items";
+import { exportPeople } from "@/lib/items";
 import { SECTIONS, type Section } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -13,13 +13,14 @@ const csv = (v: unknown) => {
 export async function GET(req: Request) {
   const raw = new URL(req.url).searchParams.get("section") ?? "sooz";
   const section = (SECTIONS as readonly string[]).includes(raw) ? (raw as Section) : "sooz";
-  const rows = await exportAngels(section);
-  const header = ["name", "firm", "role", "rice_connection", "check_size", "contact_path", "fit", "status", "summary", "source_url", "notes"];
+  const rows = await exportPeople(section);
+  const header = ["name", "kind", "firm", "role", "rice_connection", "check_size", "contact_path", "fit", "status", "summary", "source_url", "notes"];
   const lines = [header.join(",")];
   for (const i of rows) {
     lines.push(
       [
         i.title,
+        i.kind,
         i.details.firm,
         i.details.role,
         i.details.rice_connection,
@@ -38,7 +39,7 @@ export async function GET(req: Request) {
   return new Response(lines.join("\n") + "\n", {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="angels-${new Date().toISOString().slice(0, 10)}.csv"`,
+      "Content-Disposition": `attachment; filename="people-${new Date().toISOString().slice(0, 10)}.csv"`,
     },
   });
 }

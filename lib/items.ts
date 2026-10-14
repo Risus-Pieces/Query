@@ -1,5 +1,5 @@
 import { query } from "./db";
-import type { Item, Section, Status } from "./types";
+import { PERSON_KINDS, type Item, type Section, type Status } from "./types";
 
 export const VIEWS = ["inbox", "saved", "contacted", "dismissed"] as const;
 export type View = (typeof VIEWS)[number];
@@ -119,10 +119,11 @@ export async function markAllSeen(section: Section): Promise<void> {
   await query(`update items set status = 'seen' where section = $1 and status = 'new'`, [section]);
 }
 
-export async function exportAngels(section: Section = "sooz"): Promise<Item[]> {
+/** Every non-dismissed person (angels, celebrities, next-gen, creators, buyers, press) for the CSV export. */
+export async function exportPeople(section: Section = "sooz"): Promise<Item[]> {
   return query<Item>(
-    `select ${COLS} from items where section = $1 and kind = 'angel' and status <> 'dismissed'
-      order by score desc, title`,
-    [section],
+    `select ${COLS} from items where section = $1 and kind = any($2::text[]) and status <> 'dismissed'
+      order by kind, score desc, title`,
+    [section, [...PERSON_KINDS]],
   );
 }

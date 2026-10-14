@@ -10,13 +10,13 @@ const item = (o: Partial<Item> = {}): Item => ({
   deadline: null, location: "Austin", status: "new", notes: "", first_seen: "", last_seen: "", ...o,
 });
 const data = (o: Partial<DigestData> = {}): DigestData => ({
-  fresh: { sooz: [], personal: [] }, upcoming: [], generatedAt: "2026-10-07", ...o,
+  fresh: { sooz: [], personal: [], career: [] }, upcoming: [], generatedAt: "2026-10-07", ...o,
 });
 
 describe("renderDigest", () => {
   it("escapes HTML from scraped content", () => {
     const evil = item({ title: `<script>alert(1)</script>`, summary: `"><img src=x onerror=1>`, url: `https://a.com/"onmouseover="x` });
-    const { html } = renderDigest(data({ fresh: { sooz: [evil], personal: [] } }));
+    const { html } = renderDigest(data({ fresh: { sooz: [evil], personal: [], career: [] } }));
     expect(html).not.toContain("<script>");
     expect(html).not.toContain("<img");
     expect(html).not.toContain(`"onmouseover="`);
@@ -24,25 +24,38 @@ describe("renderDigest", () => {
   it("groups angels apart from other Sooz items and includes upcoming", () => {
     const angel = item({ id: 2, kind: "angel", title: "Jane", details: { firm: "Acme", rice_connection: "MBA '09", contact_path: "Rice Alliance" } });
     const { html, text, subject } = renderDigest(
-      data({ fresh: { sooz: [angel, item()], personal: [item({ id: 3, section: "personal", title: "Hack" })] }, upcoming: [item({ id: 4, title: "Soon" })] }),
+      data({ fresh: { sooz: [angel, item()], personal: [item({ id: 3, section: "personal", title: "Hack" })], career: [] }, upcoming: [item({ id: 4, title: "Soon" })] }),
       "https://dash.example",
     );
     expect(subject).toBe("Query digest: 3 new finds, 1 coming up (2026-10-07)");
-    expect(html).toContain("Sooz — new angels (1)");
+    expect(html).toContain("Sooz — new people (1)");
     expect(html).toContain("Sooz — events, funding &amp; resources (1)");
     expect(html).toContain("Rice: MBA '09");
     expect(html).toContain("Open dashboard");
     expect(text).toContain("COMING UP IN THE NEXT 14 DAYS (1)");
     expect(text).toContain("Jane [angel, fit 80]");
   });
+  it("groups every person kind as people, and lists Career separately", () => {
+    const celeb = item({ id: 5, kind: "celebrity", title: "Star", details: { firm: "Team X", role: "Forward", contact_path: "Agency roster" } });
+    const buyer = item({ id: 6, kind: "buyer", title: "Bea Buyer", details: { firm: "H-E-B" } });
+    const intern = item({ id: 7, section: "career", kind: "internship", title: "Acme: Summer Intern", deadline: "2026-12-01", event_date: null });
+    const { html, text, subject } = renderDigest(data({ fresh: { sooz: [celeb, buyer, item()], personal: [], career: [intern] } }));
+    expect(subject).toBe("Query digest: 4 new finds (2026-10-07)");
+    expect(html).toContain("Sooz — new people (2)");
+    expect(html).toContain("Path: Agency roster");
+    expect(html).toContain("Forward · Team X");
+    expect(html).toContain("Career (1)");
+    expect(text).toContain("CAREER (1)");
+    expect(text).toContain("Acme: Summer Intern [internship, fit 80] — apply by 2026-12-01");
+  });
   it("does not repeat an item under new finds when it is already listed as coming up", () => {
     const both = item({ id: 9, title: "Both" });
-    const { text } = renderDigest(data({ fresh: { sooz: [both], personal: [] }, upcoming: [both] }));
+    const { text } = renderDigest(data({ fresh: { sooz: [both], personal: [], career: [] }, upcoming: [both] }));
     expect(text.match(/Both \[event/g)).toHaveLength(1);
   });
   it("handles an empty week and singular grammar", () => {
     expect(renderDigest(data()).html).toContain("Nothing new this week.");
-    expect(renderDigest(data({ fresh: { sooz: [item()], personal: [] } })).subject).toContain("1 new find ");
+    expect(renderDigest(data({ fresh: { sooz: [item()], personal: [], career: [] } })).subject).toContain("1 new find ");
   });
 });
 
@@ -63,8 +76,8 @@ describe("sendEmail / config", () => {
     const f = vi.fn(async () => new Response("nope", { status: 422 }));
     await expect(sendEmail({ apiKey: "k", to: "a@b.c", from: "x" }, { subject: "S", html: "", text: "" }, f as any)).rejects.toThrow(/422/);
   });
-  it("digestCount sums both sections", () => {
-    expect(digestCount(data({ fresh: { sooz: [item()], personal: [item(), item()] } }))).toBe(3);
+  it("digestCount sums every section", () => {
+    expect(digestCount(data({ fresh: { sooz: [item()], personal: [item(), item()], career: [item()] } }))).toBe(4);
   });
 });
 
@@ -85,9 +98,11 @@ describe.skipIf(!hasDb)("collectDigest (postgres)", () => {
     await ins("seen", { status: "seen" });
     await ins("dismissed", { status: "dismissed" });
     await ins("personal one", { section: "personal" });
+    await ins("career one", { section: "career" });
     const d = await collectDigest(55, "2026-10-07");
     expect(d.fresh.sooz.map((i) => i.title)).toEqual(["keep"]);
     expect(d.fresh.personal.map((i) => i.title)).toEqual(["personal one"]);
+    expect(d.fresh.career.map((i) => i.title)).toEqual(["career one"]);
   });
 
   it("does not repeat items once marked digested", async () => {

@@ -2,7 +2,8 @@ import Link from "next/link";
 import { logout } from "@/app/actions";
 import { GearIcon } from "./icons";
 
-type Tab = "sooz" | "personal" | "outreach" | "settings";
+type Tab = "sooz" | "personal" | "career" | "outreach" | "settings";
+type BadgeTab = "sooz" | "personal" | "career" | "outreach";
 
 export default function Header({
   active,
@@ -11,11 +12,12 @@ export default function Header({
 }: {
   active: Tab;
   subtitle: string;
-  badges?: Partial<Record<"sooz" | "personal" | "outreach", number>>;
+  badges?: Partial<Record<BadgeTab, number>>;
 }) {
-  const tabs: { key: "sooz" | "personal" | "outreach"; label: string; href: string }[] = [
+  const tabs: { key: BadgeTab; label: string; href: string }[] = [
     { key: "sooz", label: "Sooz", href: "/?section=sooz" },
     { key: "personal", label: "Personal", href: "/?section=personal" },
+    { key: "career", label: "Career", href: "/?section=career" },
     { key: "outreach", label: "Outreach", href: "/outreach" },
   ];
   return (
