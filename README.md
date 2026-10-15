@@ -1,4 +1,10 @@
-# Query — opportunity radar
+# Query — opportunity radar (retired)
+
+> **Retired 2026-10-14.** Query now lives inside Rapport as the **Radar** tab
+> (https://rapport-liard.vercel.app/radar, repo `Risus-Pieces/rapport`): research lands there, you approve a person and
+> they become a CRM contact/deal with outreach tracked on the record. opportunity-query.vercel.app redirects there, the
+> scheduled routines read `rapport/routines/*.md`, and all findings were copied into Rapport's database. This repo and
+> its Neon database (`green-hall-60323582` / `opportunity_query`) are kept unchanged as an archive.
 
 A private dashboard + twice-weekly email that keeps looking for things worth your attention, in three sections:
 
